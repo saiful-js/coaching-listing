@@ -1,26 +1,69 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Design tokens — "warm print" direction.
+ *
+ * Ink on warm paper, one deep bottle-green brand hue, hairline rules instead
+ * of shadows, a serif display face with optical sizing. The goal is a quiet,
+ * editorial, locally-rooted look (Narayanganj river green) — deliberately not
+ * the default indigo/glassmorphism palette.
+ */
+@theme {
+  /* Ink on paper: warm, print-like base instead of neutral gray. */
+  --color-paper: #faf7f0;
+  --color-paper-raised: #fffdf8;
+  --color-ink: #201d16;
+  --color-ink-soft: #5b5648;
+  --color-ink-faint: #6e6857;
+  --color-line: #e6dfd0;
+  --color-line-strong: #d4cbb8;
+
+  /* The one brand hue, used sparingly: deep bottle green. */
+  --color-forest: #0e3a2c;
+  --color-forest-deep: #092a20;
+  --color-forest-tint: #e8efe9;
+  --color-forest-mist: #f2f5f1;
+
+  /* A warm accent for status/badges later — do not scatter. */
+  --color-clay: #b3502e;
+  --color-clay-tint: #f6e7df;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display:
+    var(--font-fraunces), ui-serif, Georgia, "Times New Roman", serif;
+  --font-mono:
+    var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-paper font-sans text-ink antialiased;
+}
+
+::selection {
+  background-color: var(--color-forest);
+  color: var(--color-paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-forest);
+  outline-offset: 2px;
+}
+
+@layer components {
+  /* Small uppercase label that opens a section. */
+  .eyebrow {
+    @apply font-mono text-xs font-medium tracking-[0.18em] text-ink-faint uppercase;
+  }
+
+  .btn {
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-sm px-5 text-sm font-medium transition-colors;
+  }
+  .btn-primary {
+    @apply bg-forest text-paper hover:bg-forest-deep;
+  }
+  .btn-secondary {
+    @apply border border-line-strong bg-paper-raised text-ink hover:border-ink-soft;
+  }
 }

@@ -1,69 +1,115 @@
-import Image from "next/image";
+import Link from "next/link";
+import { areas, categories } from "@/config/taxonomy";
 
+/**
+ * Static foundation page (M0). Data arrives from the database in M5 — until
+ * then the area/category lists render from src/config/taxonomy.ts and listing
+ * counts are placeholders.
+ */
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <>
+      {/* Hero */}
+      <section className="border-b border-line">
+        <div className="mx-auto w-full max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
+          <p className="eyebrow">Narayanganj · Dhaka Division</p>
+          <h1 className="mt-5 max-w-3xl text-balance font-display text-5xl leading-[1.04] font-medium tracking-tight sm:text-6xl">
+            Find the right coaching centre, area by area.
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="mt-6 max-w-xl text-lg leading-8 text-ink-soft">
+            A hand-checked directory of coaching centres across Narayanganj —
+            from Sadar to Sonargaon. Free to browse, with phone and WhatsApp on
+            every listing.
           </p>
+          <div className="mt-10 flex flex-wrap items-center gap-3">
+            <Link href="/coachings" className="btn btn-primary">
+              Browse coachings
+            </Link>
+            <Link href="/#areas" className="btn btn-secondary">
+              Explore areas
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* Areas — editorial list, not a card grid */}
+      <section id="areas" className="scroll-mt-16 border-b border-line">
+        <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 className="font-display text-2xl font-medium tracking-tight sm:text-3xl">
+              Explore by area
+            </h2>
+            <span className="font-mono text-xs text-ink-faint">
+              {areas.length} areas
+            </span>
+          </div>
+          <ul className="mt-8 grid border-t border-line sm:grid-cols-2 sm:gap-x-12">
+            {areas.map((area) => (
+              <li key={area.slug} className="border-b border-line">
+                <Link
+                  href={`/coachings?area=${area.slug}`}
+                  className="group flex items-baseline justify-between gap-4 py-4 pr-2 transition-colors hover:bg-paper-raised"
+                >
+                  <span className="font-display text-lg font-medium tracking-tight">
+                    {area.nameEn}
+                  </span>
+                  <span className="flex items-center gap-3 font-mono text-xs text-ink-faint">
+                    <span>— listings</span>
+                    <span
+                      aria-hidden
+                      className="transition-transform group-hover:translate-x-0.5"
+                    >
+                      →
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* Categories */}
+      <section className="border-b border-line">
+        <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+          <h2 className="font-display text-2xl font-medium tracking-tight sm:text-3xl">
+            Browse by class or subject
+          </h2>
+          <ul className="mt-8 flex flex-wrap gap-2">
+            {categories.map((category) => (
+              <li key={category.slug}>
+                <Link
+                  href={`/coachings?category=${category.slug}`}
+                  className="inline-flex h-9 items-center rounded-full border border-line bg-paper-raised px-4 text-sm text-ink-soft transition-colors hover:border-ink-soft hover:text-ink"
+                >
+                  {category.nameEn}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* Owners */}
+      <section id="owners" className="scroll-mt-16">
+        <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
+          <div className="max-w-2xl">
+            <p className="eyebrow">For coaching owners</p>
+            <h2 className="mt-4 font-display text-2xl font-medium tracking-tight sm:text-3xl">
+              Own a coaching centre in Narayanganj?
+            </h2>
+            <p className="mt-5 leading-7 text-ink-soft">
+              Get a free listing with your address, photos, and contact details.
+              Sign up, publish in minutes, and reach students already searching
+              in your area. Every listing is reviewed before it goes live — that
+              is what keeps the directory worth trusting.
+            </p>
+            <p className="mt-6 font-mono text-xs text-ink-faint">
+              Owner sign-up opens with the first release.
+            </p>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }

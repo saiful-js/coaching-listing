@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      # Env is validated at boot (src/lib/env.ts) — the build only needs
+      # well-shaped values; no database is actually contacted yet (M1+).
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      APP_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint # biome check (ADR 0001)
+      - run: npm run typecheck
+      - run: npm run build
