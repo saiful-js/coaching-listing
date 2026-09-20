@@ -20,6 +20,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npx prisma generate # explicit; also covered by the postinstall hook
       - run: npm run lint # biome check (ADR 0001)
       - run: npm run typecheck
+      - run: npm run test
       - run: npm run build

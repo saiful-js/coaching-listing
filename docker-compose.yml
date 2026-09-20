@@ -1,5 +1,6 @@
 # Local PostgreSQL only (PRD §12). Start with: docker compose up -d db
 # Matches the credentials in .env.example.
+# Host port 5433 to avoid clashing with an existing local Postgres on 5432.
 services:
   db:
     image: postgres:17-alpine
@@ -9,7 +10,7 @@ services:
       POSTGRES_PASSWORD: coaching
       POSTGRES_DB: coaching_ngj
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
