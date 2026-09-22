@@ -43,18 +43,13 @@ export function canEdit(
   );
 }
 
-/** Submit for review / resubmit after rejection. */
+/** Submit for review / resubmit after rejection (owner side, any role). */
 export function canSubmit(
-  role: Role,
+  _role: Role,
   isOwner: boolean,
   status: ListingStatus,
 ): boolean {
-  if (role === "ADMIN") {
-    return false;
-  }
-  return (
-    isOwner && (status === "DRAFT" || status === "REJECTED")
-  );
+  return isOwner && (status === "DRAFT" || status === "REJECTED");
 }
 
 /** Abandon a draft or take a published listing down (owner side). */

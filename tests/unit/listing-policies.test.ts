@@ -55,6 +55,8 @@ describe("listing policies", () => {
     expect(canSubmit("OWNER", true, "REJECTED")).toBe(true);
     expect(canSubmit("OWNER", true, "PENDING")).toBe(false);
     expect(canSubmit("OWNER", false, "DRAFT")).toBe(false);
+    // Admins moderate others' listings but can still submit their own.
+    expect(canSubmit("ADMIN", true, "DRAFT")).toBe(true);
   });
 
   it("owners archive drafts and published listings only", () => {
