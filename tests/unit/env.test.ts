@@ -40,4 +40,27 @@ describe("env validation (src/lib/env.ts)", () => {
       /Invalid environment configuration/,
     );
   });
+
+  it("accepts a missing M2 auth/provisioning env (dev stubs)", async () => {
+    stubEnv();
+    const { env } = await import("@/lib/env");
+    expect(env.BETTER_AUTH_SECRET).toBeUndefined();
+    expect(env.RESEND_API_KEY).toBeUndefined();
+    expect(env.TURNSTILE_SECRET_KEY).toBeUndefined();
+    expect(env.GOOGLE_CLIENT_ID).toBeUndefined();
+    expect(env.GOOGLE_CLIENT_SECRET).toBeUndefined();
+  });
+
+  it("accepts a fully provisioned M2 environment", async () => {
+    stubEnv({
+      BETTER_AUTH_SECRET: "test-secret-with-enough-length",
+      RESEND_API_KEY: "re_test_key",
+      TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA",
+      GOOGLE_CLIENT_ID: "google-client-id",
+      GOOGLE_CLIENT_SECRET: "google-client-secret",
+    });
+    const { env } = await import("@/lib/env");
+    expect(env.BETTER_AUTH_SECRET).toBe("test-secret-with-enough-length");
+    expect(env.GOOGLE_CLIENT_ID).toBe("google-client-id");
+  });
 });

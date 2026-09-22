@@ -25,6 +25,18 @@ const serverEnvSchema = z.object({
         value.startsWith("postgresql://") || value.startsWith("postgres://"),
       { message: "must be a PostgreSQL connection string (postgresql://…)" },
     ),
+  // ── M2 auth / provisioning (all optional) ─────────────────────────────
+  // Dev stubs stand in until accounts are provisioned; each gated feature
+  // fails loud at use-time (not boot-time) when its key is missing.
+  /** Better Auth secret (required in production; dev uses .env value). */
+  BETTER_AUTH_SECRET: z.string().min(16).optional(),
+  /** Resend API key for verification/reset emails (M2 gate). */
+  RESEND_API_KEY: z.string().min(1).optional(),
+  /** Cloudflare Turnstile secret for register/reset checks (M2 gate). */
+  TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
+  /** Google OAuth client id/secret (M2 gate; provider enabled only if both set). */
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
