@@ -1,9 +1,9 @@
 import Link from "next/link";
 import {
-  PAGE_SIZE,
   allCategories,
   areasWithCounts,
   listPublished,
+  PAGE_SIZE,
 } from "@/features/listings";
 import { ListingCard } from "@/features/listings/components/listing-card";
 
@@ -40,13 +40,17 @@ export default async function CoachingsPage({
   const categorySlug = first(params.category) || undefined;
   const page = Number.parseInt(first(params.page), 10);
 
-  const [{ items, total, pages }, areas, categories] = await Promise.all([
-    listPublished({ q, areaSlug, categorySlug, page }),
-    areasWithCounts(),
-    allCategories(),
-  ]);
+  const [{ items, total, pages, page: currentPage }, areas, categories] =
+    await Promise.all([
+      listPublished({ q, areaSlug, categorySlug, page }),
+      areasWithCounts(),
+      allCategories(),
+    ]);
   const hasFilters = Boolean(q || areaSlug || categorySlug);
-  const shownPage = Number.isInteger(page) && page > 0 ? page : 1;
+  // Clamp the high end: ?page=999 with 3 pages shows the empty state with a
+  // way back instead of a misleading "page 999 of 3".
+  const shownPage = Math.min(currentPage, pages);
+  const outOfRange = currentPage > pages;
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
@@ -122,19 +126,21 @@ export default async function CoachingsPage({
         {` · page ${shownPage} of ${pages}`}
       </p>
 
-      {items.length === 0 ? (
+      {items.length === 0 || outOfRange ? (
         <div className="mt-6 rounded-sm border border-line bg-paper-raised p-8 text-center">
           <h2 className="font-display text-xl font-medium tracking-tight">
             No coaching centres found
           </h2>
           <p className="mx-auto mt-2 max-w-md text-sm leading-7 text-ink-soft">
-            {hasFilters
-              ? "Nothing matches those filters. Try widening the search."
-              : "The first listings arrive once owners sign up and each one is reviewed."}
+            {outOfRange
+              ? `Page ${currentPage} doesn't exist — there ${pages === 1 ? "is" : "are"} only ${pages} ${pages === 1 ? "page" : "pages"}.`
+              : hasFilters
+                ? "Nothing matches those filters. Try widening the search."
+                : "The first listings arrive once owners sign up and each one is reviewed."}
           </p>
-          {hasFilters && (
+          {(hasFilters || outOfRange) && (
             <Link href="/coachings" className="btn btn-secondary mt-6">
-              Clear filters
+              {outOfRange && !hasFilters ? "Back to page 1" : "Clear filters"}
             </Link>
           )}
         </div>
@@ -154,7 +160,10 @@ export default async function CoachingsPage({
             >
               {shownPage > 1 && (
                 <Link
-                  href={pageHref({ q, area: areaSlug, category: categorySlug }, shownPage - 1)}
+                  href={pageHref(
+                    { q, area: areaSlug, category: categorySlug },
+                    shownPage - 1,
+                  )}
                   className="btn btn-secondary h-10 px-4 text-sm"
                 >
                   ← Previous
@@ -165,7 +174,10 @@ export default async function CoachingsPage({
               </span>
               {shownPage < pages && (
                 <Link
-                  href={pageHref({ q, area: areaSlug, category: categorySlug }, shownPage + 1)}
+                  href={pageHref(
+                    { q, area: areaSlug, category: categorySlug },
+                    shownPage + 1,
+                  )}
                   className="btn btn-secondary h-10 px-4 text-sm"
                 >
                   Next →

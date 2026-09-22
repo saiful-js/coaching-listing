@@ -234,7 +234,8 @@ describe("M4 uploads service", () => {
     expect(gone).toBeNull();
   });
 
-  it("flips the cover with setCoverImage", async () => {    const uid = await makeOwner();
+  it("flips the cover with setCoverImage", async () => {
+    const uid = await makeOwner();
     const coaching = await makeCoaching(uid, `SetCover ${runId}`);
     const first = await uploads.uploadCoachingImage(
       ownerActor(uid),
@@ -295,7 +296,11 @@ describe("M4 uploads service", () => {
     });
     const collidingClient: CloudinaryUploader = {
       ...fakeClient,
-      upload: async () => ({ publicId: "test/colliding-key", width: 1, height: 1 }),
+      upload: async () => ({
+        publicId: "test/colliding-key",
+        width: 1,
+        height: 1,
+      }),
     };
     await expect(
       uploads.uploadCoachingImage(

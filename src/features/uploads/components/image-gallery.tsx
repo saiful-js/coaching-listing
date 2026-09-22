@@ -14,11 +14,7 @@ export interface GalleryImage {
  * Owner gallery (server): cover badge, fixed-aspect thumbs via next/image,
  * per-photo actions. Public gallery lands in M5.
  */
-export function ImageGallery({
-  images,
-}: {
-  images: GalleryImage[];
-}) {
+export function ImageGallery({ images }: { images: GalleryImage[] }) {
   if (images.length === 0) {
     return (
       <p className="text-sm text-ink-soft">

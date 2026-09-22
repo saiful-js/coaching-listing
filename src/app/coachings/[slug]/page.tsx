@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPublishedBySlug } from "@/features/listings";
+import { getPublishedBySlug, safeFacebookUrl } from "@/features/listings";
 import { cloudinaryUrl } from "@/features/uploads";
 
 export async function generateMetadata({
@@ -32,6 +32,8 @@ export default async function CoachingDetailPage({
   }
   const digits = listing.phone.replace(/\D/g, "");
   const whatsappDigits = listing.whatsapp?.replace(/\D/g, "");
+  // Render-time scheme/host guard (stored-XSS defense in depth).
+  const facebookHref = safeFacebookUrl(listing.facebookUrl);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
@@ -50,7 +52,9 @@ export default async function CoachingDetailPage({
           <h1 className="mt-2 font-display text-3xl font-medium tracking-tight sm:text-4xl">
             <span className="font-content">{listing.name}</span>
           </h1>
-          <p className="font-content mt-3 text-ink-soft">{listing.addressLine}</p>
+          <p className="font-content mt-3 text-ink-soft">
+            {listing.addressLine}
+          </p>
 
           {listing.images.length > 0 && (
             <div className="mt-8 grid gap-4">
@@ -129,9 +133,9 @@ export default async function CoachingDetailPage({
                 {listing.email}
               </a>
             )}
-            {listing.facebookUrl && (
+            {facebookHref && (
               <a
-                href={listing.facebookUrl}
+                href={facebookHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-ink-soft underline underline-offset-4 hover:text-ink"

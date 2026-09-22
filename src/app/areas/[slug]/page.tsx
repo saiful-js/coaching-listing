@@ -52,8 +52,8 @@ export default async function AreaPage({
             No listings here yet
           </h2>
           <p className="mx-auto mt-2 max-w-md text-sm leading-7 text-ink-soft">
-            Centres in this area are still signing up. Browse the full
-            directory meanwhile.
+            Centres in this area are still signing up. Browse the full directory
+            meanwhile.
           </p>
           <Link href="/coachings" className="btn btn-secondary mt-6">
             Browse all centres

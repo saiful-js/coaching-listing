@@ -47,7 +47,10 @@ function buildWhere(filters: PublishedFilters) {
   };
 }
 
-const publishedOrder = [{ publishedAt: "desc" as const }, { id: "desc" as const }];
+const publishedOrder = [
+  { publishedAt: "desc" as const },
+  { id: "desc" as const },
+];
 
 export async function listPublished(filters: PublishedFilters) {
   const page =
@@ -65,7 +68,12 @@ export async function listPublished(filters: PublishedFilters) {
       select: cardSelect,
     }),
   ]);
-  return { items, total, page, pages: Math.max(1, Math.ceil(total / PAGE_SIZE)) };
+  return {
+    items,
+    total,
+    page,
+    pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+  };
 }
 
 export async function getPublishedBySlug(slug: string) {
@@ -89,7 +97,13 @@ export async function getPublishedBySlug(slug: string) {
       },
       images: {
         orderBy: [{ isCover: "desc" as const }, { sortOrder: "asc" as const }],
-        select: { id: true, key: true, width: true, height: true, isCover: true },
+        select: {
+          id: true,
+          key: true,
+          width: true,
+          height: true,
+          isCover: true,
+        },
       },
     },
   });
@@ -123,7 +137,8 @@ export async function allCategories() {
   });
 }
 
-export async function areasWithCounts() {  const areas = await prisma.area.findMany({
+export async function areasWithCounts() {
+  const areas = await prisma.area.findMany({
     orderBy: { sortOrder: "asc" },
     select: { slug: true, nameEn: true, nameBn: true },
   });
@@ -133,7 +148,9 @@ export async function areasWithCounts() {  const areas = await prisma.area.findM
     _count: { _all: true },
   });
   const byArea = new Map(counts.map((c) => [c.areaId, c._count._all]));
-  const withIds = await prisma.area.findMany({ select: { id: true, slug: true } });
+  const withIds = await prisma.area.findMany({
+    select: { id: true, slug: true },
+  });
   const idBySlug = new Map(withIds.map((a) => [a.slug, a.id]));
   return areas.map((area) => ({
     ...area,

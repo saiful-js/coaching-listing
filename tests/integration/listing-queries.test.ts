@@ -5,10 +5,11 @@
  * is ever listed, stable ordering, pagination, search, and filters.
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import type { PrismaClient } from "@/generated/prisma/client";
 import type { Actor } from "@/features/listings/service";
+import type { PrismaClient } from "@/generated/prisma/client";
 
-const DATABASE_URL = "postgresql://coaching:coaching@localhost:5434/coaching_ngj";
+const DATABASE_URL =
+  "postgresql://coaching:coaching@localhost:5434/coaching_ngj";
 const runId = Date.now().toString(36);
 
 let prisma: PrismaClient;
@@ -32,7 +33,13 @@ async function makeUser(prefix: string, role: "OWNER" | "ADMIN") {
   await prisma.user.upsert({
     where: { id },
     update: {},
-    create: { id, name: id, email: `${id}@example.com`, emailVerified: true, role },
+    create: {
+      id,
+      name: id,
+      email: `${id}@example.com`,
+      emailVerified: true,
+      role,
+    },
   });
   ownerIds.push(id);
   return id;
@@ -63,8 +70,16 @@ async function addCover(coachingId: string) {
   });
 }
 
-async function publish(ownerId: string, adminId: string, name: string, overrides = {}) {
-  const created = await service.createCoaching(ownerActor(ownerId), validInput(name, overrides));
+async function publish(
+  ownerId: string,
+  adminId: string,
+  name: string,
+  overrides = {},
+) {
+  const created = await service.createCoaching(
+    ownerActor(ownerId),
+    validInput(name, overrides),
+  );
   await addCover(created.id);
   await service.submitForReview(ownerActor(ownerId), created.id);
   return service.approveListing(adminActor(adminId), created.id);
@@ -81,7 +96,9 @@ describe("M5 listing queries", () => {
     const area = await prisma.area.findFirstOrThrow();
     areaId = area.id;
     areaSlug = area.slug;
-    categoryIds = (await prisma.category.findMany({ take: 2 })).map((c) => c.id);
+    categoryIds = (await prisma.category.findMany({ take: 2 })).map(
+      (c) => c.id,
+    );
   });
 
   afterAll(async () => {
@@ -96,15 +113,24 @@ describe("M5 listing queries", () => {
     const admin = await makeUser(`m5-vis-admin-${ownerIds.length}`, "ADMIN");
     const tag = `Vis${runId}`;
     await service.createCoaching(ownerActor(owner), validInput(`DRAFT ${tag}`));
-    const pending = await service.createCoaching(ownerActor(owner), validInput(`PENDING ${tag}`));
+    const pending = await service.createCoaching(
+      ownerActor(owner),
+      validInput(`PENDING ${tag}`),
+    );
     await addCover(pending.id);
     await service.submitForReview(ownerActor(owner), pending.id);
-    const rejected = await service.createCoaching(ownerActor(owner), validInput(`REJECTED ${tag}`));
+    const rejected = await service.createCoaching(
+      ownerActor(owner),
+      validInput(`REJECTED ${tag}`),
+    );
     await addCover(rejected.id);
     await service.submitForReview(ownerActor(owner), rejected.id);
     await service.rejectListing(adminActor(admin), rejected.id, "nope");
     const pub = await publish(owner, admin, `PUB ${tag}`);
-    const archived = await service.createCoaching(ownerActor(owner), validInput(`ARCH ${tag}`));
+    const archived = await service.createCoaching(
+      ownerActor(owner),
+      validInput(`ARCH ${tag}`),
+    );
     await addCover(archived.id);
     await service.submitForReview(ownerActor(owner), archived.id);
     await service.approveListing(adminActor(admin), archived.id);
@@ -130,7 +156,11 @@ describe("M5 listing queries", () => {
     }
     const tag = `Page${runId}`;
     for (let i = 0; i < 13; i++) {
-      await publish(owners[Math.floor(i / 5)]!, admin, `${tag} ${i.toString().padStart(2, "0")}`);
+      await publish(
+        owners[Math.floor(i / 5)]!,
+        admin,
+        `${tag} ${i.toString().padStart(2, "0")}`,
+      );
     }
     const page1 = await queries.listPublished({ q: tag, page: 1 });
     const page2 = await queries.listPublished({ q: tag, page: 2 });
@@ -168,10 +198,22 @@ describe("M5 listing queries", () => {
     const areas = await prisma.area.findMany({ take: 2 });
     const otherArea = areas.find((a) => a.id !== areaId)!;
     await publish(owner, admin, `In Area ${tag}`, { areaId: otherArea.id });
-    await publish(owner, admin, `Cat One ${tag}`, { categoryIds: [categoryIds[0]!] });
-    const inArea = await queries.listPublished({ q: tag, areaSlug: otherArea.slug });
+    await publish(owner, admin, `Cat One ${tag}`, {
+      categoryIds: [categoryIds[0]!],
+    });
+    const inArea = await queries.listPublished({
+      q: tag,
+      areaSlug: otherArea.slug,
+    });
     expect(inArea.items.map((i) => i.name)).toEqual([`In Area ${tag}`]);
-    const inCat = await queries.listPublished({ q: tag, categorySlug: (await prisma.category.findUniqueOrThrow({ where: { id: categoryIds[1]! } })).slug });
+    const inCat = await queries.listPublished({
+      q: tag,
+      categorySlug: (
+        await prisma.category.findUniqueOrThrow({
+          where: { id: categoryIds[1]! },
+        })
+      ).slug,
+    });
     expect(inCat.total).toBeGreaterThanOrEqual(1);
     expect(inCat.items.every((i) => i.name.includes(tag))).toBe(true);
   });
@@ -185,7 +227,10 @@ describe("M5 listing queries", () => {
     expect(detail?.name).toBe(`Detail ${tag}`);
     expect(detail?.categories.length).toBe(2);
     expect(detail?.images.length).toBe(1);
-    const draft = await service.createCoaching(ownerActor(owner), validInput(`Draft ${tag}`));
+    const draft = await service.createCoaching(
+      ownerActor(owner),
+      validInput(`Draft ${tag}`),
+    );
     expect(await queries.getPublishedBySlug(draft.slug)).toBeNull();
     expect(await queries.getPublishedBySlug("no-such-slug")).toBeNull();
   });
@@ -197,9 +242,7 @@ describe("M5 listing queries", () => {
     expect(await queries.getAreaWithListings("no-such-area")).toBeNull();
     const latest = await queries.latestPublished(3);
     expect(latest.length).toBeLessThanOrEqual(3);
-    expect(
-      latest.every((i) => typeof i.slug === "string"),
-    ).toBe(true);
+    expect(latest.every((i) => typeof i.slug === "string")).toBe(true);
   });
 
   it("normalizes bad page numbers to page 1", async () => {

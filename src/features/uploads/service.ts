@@ -1,5 +1,5 @@
 import type { Actor } from "@/features/listings/service";
-import { actorResolver } from "@/features/listings/service";
+import { actorResolver, RateLimitedError } from "@/features/listings/service";
 import {
   type CloudinaryUploader,
   getCloudinaryClient,
@@ -7,7 +7,6 @@ import {
 import type { CoachingImage } from "@/generated/prisma/client";
 import { NotFoundError, requireOwnerOf } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
-import { RateLimitedError } from "@/features/listings/service";
 import { consumeRateLimit } from "@/lib/rate-limit";
 
 export interface IncomingFile {

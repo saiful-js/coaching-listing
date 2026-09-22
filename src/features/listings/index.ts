@@ -7,7 +7,7 @@
  */
 
 export type { ActionResult } from "./actions";
-export {
+export { safeFacebookUrl } from "./facebook";export {
   archiveListingAction,
   createListingAction,
   submitListingAction,
@@ -20,6 +20,16 @@ export {
   canSubmit,
   isTransitionAllowed,
 } from "./policies";
+export type { PublishedFilters } from "./queries";
+export {
+  allCategories,
+  areasWithCounts,
+  getAreaWithListings,
+  getPublishedBySlug,
+  latestPublished,
+  listPublished,
+  PAGE_SIZE,
+} from "./queries";
 export type { Actor } from "./service";
 export {
   approveListing,
@@ -32,13 +42,3 @@ export {
   submitForReview,
   updateCoaching,
 } from "./service";
-export {
-  PAGE_SIZE,
-  allCategories,
-  areasWithCounts,
-  getAreaWithListings,
-  getPublishedBySlug,
-  latestPublished,
-  listPublished,
-} from "./queries";
-export type { PublishedFilters } from "./queries";
