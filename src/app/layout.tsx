@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, Geist, Geist_Mono, Hind_Siliguri } from "next/font/google";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { site } from "@/config/site";
@@ -17,6 +17,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-geist-mono",
 });
+/* Bengali-capable face for user-entered content (names, descriptions). */
+const hindSiliguri = Hind_Siliguri({
+  subsets: ["bengali", "latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-hind-siliguri",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(env.APP_URL),
@@ -31,7 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${geistSans.variable} ${geistMono.variable} h-full`}
+      className={`${fraunces.variable} ${geistSans.variable} ${geistMono.variable} ${hindSiliguri.variable} h-full`}
     >
       <body className="flex min-h-full flex-col">
         <SiteHeader />

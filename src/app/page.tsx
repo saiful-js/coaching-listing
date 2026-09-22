@@ -6,6 +6,9 @@ import {
 } from "@/features/listings";
 import { ListingCard } from "@/features/listings/components/listing-card";
 
+/** Fresh-enough home: rebuild the static shell at most every 5 minutes. */
+export const revalidate = 300;
+
 /**
  * Home (M5: data-driven). Search box, area chips with live counts, and the
  * latest published listings. Still fully static-renderable output per

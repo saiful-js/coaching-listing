@@ -35,6 +35,10 @@
     var(--font-fraunces), ui-serif, Georgia, "Times New Roman", serif;
   --font-mono:
     var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  /* User-entered content (Bangla or English): Bengali-capable first. */
+  --font-content:
+    var(--font-hind-siliguri), var(--font-geist-sans), ui-sans-serif,
+    system-ui, sans-serif;
 }
 
 body {
