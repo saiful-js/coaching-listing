@@ -5,14 +5,15 @@
  * through the service seam. Real-credential proof is one E2E upload in T6.
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import type { PrismaClient } from "@/generated/prisma/client";
 import type { Actor } from "@/features/listings/service";
 import type {
   CloudinaryUploader,
   UploadedImage,
 } from "@/features/uploads/cloudinary-client";
+import type { PrismaClient } from "@/generated/prisma/client";
 
-const DATABASE_URL = "postgresql://coaching:coaching@localhost:5434/coaching_ngj";
+const DATABASE_URL =
+  "postgresql://coaching:coaching@localhost:5434/coaching_ngj";
 const runId = Date.now().toString(36);
 
 let prisma: PrismaClient;
@@ -21,7 +22,10 @@ let uploads: typeof import("@/features/uploads/service");
 const destroyed: string[] = [];
 let uploadCount = 0;
 const fakeClient: CloudinaryUploader = {
-  async upload(_buffer: Buffer, options: { folder: string }): Promise<UploadedImage> {
+  async upload(
+    _buffer: Buffer,
+    options: { folder: string },
+  ): Promise<UploadedImage> {
     uploadCount += 1;
     return {
       publicId: `${options.folder}/fake-${runId}-${uploadCount}`,
@@ -38,7 +42,11 @@ function ownerActor(id: string): Actor {
   return { id, role: "OWNER", emailVerified: true };
 }
 
-function jpeg(size = 100): { bytes: Buffer; contentType: string; size: number } {
+function jpeg(size = 100): {
+  bytes: Buffer;
+  contentType: string;
+  size: number;
+} {
   return { bytes: Buffer.alloc(size, 0xff), contentType: "image/jpeg", size };
 }
 
@@ -176,7 +184,12 @@ describe("M4 uploads service", () => {
       );
     }
     await expect(
-      uploads.uploadCoachingImage(ownerActor(uid), coaching.id, jpeg(), fakeClient),
+      uploads.uploadCoachingImage(
+        ownerActor(uid),
+        coaching.id,
+        jpeg(),
+        fakeClient,
+      ),
     ).rejects.toThrow(/limit|max|6/i);
   });
 
@@ -186,7 +199,12 @@ describe("M4 uploads service", () => {
     const coaching = await makeCoaching(uidA, `Private ${runId}`);
     const { NotFoundError } = await import("@/lib/auth-helpers");
     await expect(
-      uploads.uploadCoachingImage(ownerActor(uidB), coaching.id, jpeg(), fakeClient),
+      uploads.uploadCoachingImage(
+        ownerActor(uidB),
+        coaching.id,
+        jpeg(),
+        fakeClient,
+      ),
     ).rejects.toBeInstanceOf(NotFoundError);
     const image = await uploads.uploadCoachingImage(
       ownerActor(uidA),

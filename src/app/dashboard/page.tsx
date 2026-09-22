@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DashboardActions } from "@/features/listings/components/dashboard-actions";
 import { StatusBadge } from "@/features/listings/components/status-badge";
+import { CoverThumb } from "@/features/uploads/components/image-gallery";
 import { requireUser, UnauthorizedError } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
 
@@ -30,6 +31,11 @@ export default async function DashboardPage() {
       rejectionReason: true,
       updatedAt: true,
       area: { select: { nameEn: true } },
+      images: {
+        where: { isCover: true },
+        take: 1,
+        select: { key: true },
+      },
     },
   });
 
@@ -65,14 +71,22 @@ export default async function DashboardPage() {
               className="rounded-sm border border-line bg-paper-raised p-5"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="grid gap-1">
-                  <p className="font-display text-lg font-medium">
-                    {listing.name}
-                  </p>
-                  <p className="font-mono text-xs text-ink-faint">
-                    {listing.area.nameEn} · updated{" "}
-                    {listing.updatedAt.toISOString().slice(0, 10)}
-                  </p>
+                <div className="flex items-center gap-3">
+                  {listing.images[0] && (
+                    <CoverThumb
+                      imageKey={listing.images[0].key}
+                      name={listing.name}
+                    />
+                  )}
+                  <div className="grid gap-1">
+                    <p className="font-display text-lg font-medium">
+                      {listing.name}
+                    </p>
+                    <p className="font-mono text-xs text-ink-faint">
+                      {listing.area.nameEn} · updated{" "}
+                      {listing.updatedAt.toISOString().slice(0, 10)}
+                    </p>
+                  </div>
                 </div>
                 <StatusBadge status={listing.status} />
               </div>

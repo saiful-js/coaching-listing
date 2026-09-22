@@ -1,12 +1,12 @@
-import type { CoachingImage } from "@/generated/prisma/client";
-import { NotFoundError, requireOwnerOf } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/db";
 import type { Actor } from "@/features/listings/service";
 import { actorResolver } from "@/features/listings/service";
 import {
-  getCloudinaryClient,
   type CloudinaryUploader,
+  getCloudinaryClient,
 } from "@/features/uploads/cloudinary-client";
+import type { CoachingImage } from "@/generated/prisma/client";
+import { NotFoundError, requireOwnerOf } from "@/lib/auth-helpers";
+import { prisma } from "@/lib/db";
 
 export interface IncomingFile {
   bytes: Buffer;
@@ -107,7 +107,7 @@ export async function deleteCoachingImage(
   const image = await ownedImageOr404(actor, imageId);
   try {
     await client.destroy(image.key);
-  } catch (error) {
+  } catch {
     // The DB row is the source of truth for what we show; a cloud object
     // that is already gone (or briefly unreachable) must not strand it.
     console.error("Cloudinary destroy failed");

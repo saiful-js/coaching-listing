@@ -1,5 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { ListingForm } from "@/features/listings/components/listing-form";
+import { ImageGallery } from "@/features/uploads/components/image-gallery";
+import { ImageUploader } from "@/features/uploads/components/image-uploader";
 import { requireUser, UnauthorizedError } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
 
@@ -39,6 +41,16 @@ export default async function EditListingPage({
       email: true,
       facebookUrl: true,
       categories: { select: { id: true } },
+      images: {
+        orderBy: { sortOrder: "asc" },
+        select: {
+          id: true,
+          key: true,
+          width: true,
+          height: true,
+          isCover: true,
+        },
+      },
     },
   });
   if (!listing || (role !== "ADMIN" && listing.ownerId !== userId)) {
@@ -78,6 +90,16 @@ export default async function EditListingPage({
           areas={areas}
           categories={categories}
         />
+      </div>
+      <div className="mt-10 grid gap-4 border-t border-line pt-8">
+        <h2 className="font-display text-xl font-medium tracking-tight">
+          Photos
+        </h2>
+        <ImageUploader
+          coachingId={listing.id}
+          imageCount={listing.images.length}
+        />
+        <ImageGallery images={listing.images} />
       </div>
     </div>
   );

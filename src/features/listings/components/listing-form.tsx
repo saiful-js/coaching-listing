@@ -3,7 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Field, FormError, TextInput } from "@/features/auth";
-import { createListingAction, updateListingAction } from "@/features/listings/actions";
+import {
+  createListingAction,
+  updateListingAction,
+} from "@/features/listings/actions";
 import {
   type CreateCoachingInput,
   createCoachingSchema,
@@ -52,7 +55,9 @@ export function ListingForm({
       facebookUrl: String(form.get("facebookUrl") ?? "") || undefined,
     });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Check the highlighted fields.");
+      setError(
+        parsed.error.issues[0]?.message ?? "Check the highlighted fields.",
+      );
       return;
     }
     setPending(true);

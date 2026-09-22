@@ -2,7 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { archiveListingAction, submitListingAction } from "@/features/listings/actions";
+import {
+  archiveListingAction,
+  submitListingAction,
+} from "@/features/listings/actions";
 
 import type { ListingStatus } from "@/generated/prisma/client";
 
