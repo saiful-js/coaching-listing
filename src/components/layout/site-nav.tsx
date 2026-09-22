@@ -11,8 +11,8 @@ const ctaClassName = "btn btn-primary h-9 px-4 text-[13px]";
  * Session-aware menubar links (client-side so the header — and every page
  * using it — stays statically renderable). Each role gets its own set:
  * visitors are sold the product, owners get to work, admins get to moderate.
- * While the session resolves we show the visitor set (never flash authed
- * links to anonymous users).
+ * While the session resolves we render neutral placeholders (never flash
+ * either set to the wrong audience).
  */
 export function SiteNav() {
   const router = useRouter();
@@ -26,7 +26,32 @@ export function SiteNav() {
     router.refresh();
   }
 
-  if (isPending || !session) {
+  if (isPending) {
+    // Neutral placeholders: never flash the wrong links while the session
+    // resolves (visitor links here would visibly swap for logged-in users).
+    return (
+      <nav
+        aria-label="Main"
+        aria-busy="true"
+        className="flex items-center gap-6 text-sm"
+      >
+        <span
+          aria-hidden
+          className="h-4 w-14 animate-pulse rounded-sm bg-line"
+        />
+        <span
+          aria-hidden
+          className="h-4 w-20 animate-pulse rounded-sm bg-line"
+        />
+        <span
+          aria-hidden
+          className="h-9 w-32 animate-pulse rounded-sm bg-line"
+        />
+      </nav>
+    );
+  }
+
+  if (!session) {
     return (
       <nav aria-label="Main" className="flex items-center gap-6 text-sm">
         <Link href="/coachings" className={linkClassName}>
