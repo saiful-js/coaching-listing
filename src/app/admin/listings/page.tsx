@@ -14,6 +14,7 @@ const TABS: { value: string; label: string }[] = [
   { value: "PUBLISHED", label: "Published" },
   { value: "REJECTED", label: "Rejected" },
   { value: "ARCHIVED", label: "Archived" },
+  { value: "DRAFT", label: "Drafts" },
   { value: "", label: "All" },
 ];
 
@@ -25,30 +26,49 @@ const STATUSES: ListingStatus[] = [
   "ARCHIVED",
 ];
 
+const QUEUE_PAGE_SIZE = 25;
+
+function tabHref(value: string): string {
+  return value ? `/admin/listings?status=${value}` : "/admin/listings?status=";
+}
+
+function pageHref(status: ListingStatus | "ALL", page: number): string {
+  const base = status === "ALL" ? "/admin/listings?status=" : tabHref(status);
+  return `${base}&page=${page}`;
+}
+
 export default async function AdminListingsPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
-  const raw = Array.isArray(params.status) ? params.status[0] : params.status;
+  const rawStatus = Array.isArray(params.status)
+    ? params.status[0]
+    : params.status;
+  const rawPage = Array.isArray(params.page) ? params.page[0] : params.page;
   // Missing/unknown → PENDING queue; explicit empty → all statuses.
   const status: ListingStatus | "ALL" =
-    raw === ""
+    rawStatus === ""
       ? "ALL"
-      : (STATUSES as string[]).includes(raw ?? "")
-        ? (raw as ListingStatus)
+      : (STATUSES as string[]).includes(rawStatus ?? "")
+        ? (rawStatus as ListingStatus)
         : "PENDING";
+  const parsedPage = Number.parseInt(rawPage ?? "", 10);
+  const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
-  const [counts, listings] = await Promise.all([
+  const where = status === "ALL" ? {} : { status };
+  const [counts, total, listings] = await Promise.all([
     prisma.coaching.groupBy({
       by: ["status"],
       _count: { _all: true },
     }),
+    prisma.coaching.count({ where }),
     prisma.coaching.findMany({
-      where: status === "ALL" ? {} : { status },
+      where,
       orderBy: { updatedAt: "desc" },
-      take: 50,
+      skip: (page - 1) * QUEUE_PAGE_SIZE,
+      take: QUEUE_PAGE_SIZE,
       select: {
         id: true,
         name: true,
@@ -60,6 +80,7 @@ export default async function AdminListingsPage({
     }),
   ]);
   const countBy = new Map(counts.map((c) => [c.status, c._count._all]));
+  const pages = Math.max(1, Math.ceil(total / QUEUE_PAGE_SIZE));
 
   return (
     <div>
@@ -74,11 +95,7 @@ export default async function AdminListingsPage({
         {TABS.map((tab) => (
           <Link
             key={tab.value || "all"}
-            href={
-              tab.value
-                ? `/admin/listings?status=${tab.value}`
-                : "/admin/listings?status="
-            }
+            href={tabHref(tab.value)}
             role="tab"
             aria-selected={
               tab.value === status || (tab.value === "" && status === "ALL")
@@ -103,31 +120,66 @@ export default async function AdminListingsPage({
           Nothing with this status. The queue is clear.
         </p>
       ) : (
-        <ul className="mt-6 grid gap-4">
-          {listings.map((listing) => (
-            <li
-              key={listing.id}
-              className="grid gap-3 rounded-sm border border-line bg-paper-raised p-5"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="grid gap-1">
-                  <p className="font-display text-lg font-medium">
-                    <span className="font-content">{listing.name}</span>
-                  </p>
-                  <p className="font-mono text-xs text-ink-faint">
-                    {listing.owner.email} · {listing.area.nameEn} · updated{" "}
-                    {listing.updatedAt.toISOString().slice(0, 10)}
-                  </p>
+        <>
+          <p
+            className="mt-4 font-mono text-xs text-ink-faint"
+            aria-live="polite"
+          >
+            Showing {(page - 1) * QUEUE_PAGE_SIZE + 1}–
+            {(page - 1) * QUEUE_PAGE_SIZE + listings.length} of {total}
+          </p>
+          <ul className="mt-4 grid gap-4">
+            {listings.map((listing) => (
+              <li
+                key={listing.id}
+                className="grid gap-3 rounded-sm border border-line bg-paper-raised p-5"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="grid gap-1">
+                    <p className="font-display text-lg font-medium">
+                      <span className="font-content">{listing.name}</span>
+                    </p>
+                    <p className="font-mono text-xs text-ink-faint">
+                      {listing.owner.email} · {listing.area.nameEn} · updated{" "}
+                      {listing.updatedAt.toISOString().slice(0, 10)}
+                    </p>
+                  </div>
+                  <StatusBadge status={listing.status} />
                 </div>
-                <StatusBadge status={listing.status} />
-              </div>
-              {(listing.status === "PENDING" ||
-                listing.status === "PUBLISHED") && (
-                <ModerationActions id={listing.id} status={listing.status} />
+                {(listing.status === "PENDING" ||
+                  listing.status === "PUBLISHED") && (
+                  <ModerationActions id={listing.id} status={listing.status} />
+                )}
+              </li>
+            ))}
+          </ul>
+          {pages > 1 && (
+            <nav
+              aria-label="Queue pagination"
+              className="mt-8 flex items-center justify-center gap-2"
+            >
+              {page > 1 && (
+                <Link
+                  href={pageHref(status, page - 1)}
+                  className="btn btn-secondary h-10 px-4 text-sm"
+                >
+                  ← Previous
+                </Link>
               )}
-            </li>
-          ))}
-        </ul>
+              <span className="font-mono text-xs text-ink-faint">
+                {page} / {pages}
+              </span>
+              {page < pages && (
+                <Link
+                  href={pageHref(status, page + 1)}
+                  className="btn btn-secondary h-10 px-4 text-sm"
+                >
+                  Next →
+                </Link>
+              )}
+            </nav>
+          )}
+        </>
       )}
     </div>
   );

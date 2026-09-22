@@ -192,4 +192,11 @@ describe("M6 admin moderation", () => {
       admin.createCategory(ownerActor(owner), { nameEn: "Other", nameBn: "y" }),
     ).rejects.toBeInstanceOf(ForbiddenError);
   });
+
+  it("rejects Bangla-only names instead of squatting the fallback slug", async () => {
+    const adminId = await makeUser(`m6-slug-admin-${ownerIds.length}`, "ADMIN");
+    await expect(
+      admin.createArea(adminActor(adminId), { nameEn: "!!!", nameBn: "x" }),
+    ).rejects.toThrow(/latin/i);
+  });
 });

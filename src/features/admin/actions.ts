@@ -17,6 +17,7 @@ export interface AdminActionResult {
 }
 
 const idSchema = z.string().min(1).max(100);
+const reasonSchema = z.string().trim().min(1).max(2000);
 
 function toError(error: unknown): AdminActionResult {
   if (error instanceof ZodError) {
@@ -55,8 +56,9 @@ export async function rejectListingAction(
 ): Promise<AdminActionResult> {
   try {
     const parsedId = idSchema.parse(id);
+    const parsedReason = reasonSchema.parse(reason);
     const actor = await resolveActor();
-    const coaching = await rejectListing(actor, parsedId, reason);
+    const coaching = await rejectListing(actor, parsedId, parsedReason);
     revalidatePath("/admin/listings");
     return { ok: true, id: coaching.id };
   } catch (error) {
