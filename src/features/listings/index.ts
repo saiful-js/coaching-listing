@@ -32,3 +32,12 @@ export {
   submitForReview,
   updateCoaching,
 } from "./service";
+export {
+  PAGE_SIZE,
+  areasWithCounts,
+  getAreaWithListings,
+  getPublishedBySlug,
+  latestPublished,
+  listPublished,
+} from "./queries";
+export type { PublishedFilters } from "./queries";
