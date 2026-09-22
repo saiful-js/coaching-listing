@@ -14,6 +14,8 @@ const linkClassName = "text-ink-soft transition-colors hover:text-ink";
 export function SiteNav() {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  const isAdmin = role === "ADMIN";
 
   async function signOut() {
     await authClient.signOut();
@@ -38,6 +40,14 @@ export function SiteNav() {
           <Link href="/dashboard" className={linkClassName}>
             Dashboard
           </Link>
+          {isAdmin && (
+            <Link
+              href="/admin/listings?status=PENDING"
+              className={linkClassName}
+            >
+              Admin
+            </Link>
+          )}
           <button
             type="button"
             onClick={signOut}

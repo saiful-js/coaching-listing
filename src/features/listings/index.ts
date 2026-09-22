@@ -7,12 +7,13 @@
  */
 
 export type { ActionResult } from "./actions";
-export { safeFacebookUrl } from "./facebook";export {
+export {
   archiveListingAction,
   createListingAction,
   submitListingAction,
   updateListingAction,
 } from "./actions";
+export { safeFacebookUrl } from "./facebook";
 export {
   canArchive,
   canEdit,

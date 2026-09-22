@@ -1,8 +1,8 @@
 import { z } from "zod";
+import type { Actor } from "@/features/listings/service";
 import type { Area, Category } from "@/generated/prisma/client";
 import { ForbiddenError } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
-import type { Actor } from "@/features/listings/service";
 
 const taxonomySchema = z.object({
   nameEn: z.string().trim().min(2).max(100),
@@ -32,16 +32,15 @@ function requireAdminActor(actor: Actor) {
  * (live listings reference these rows; that needs a merge flow, not a
  * delete button).
  */
-export async function createArea(
-  actor: Actor,
-  input: unknown,
-): Promise<Area> {
+export async function createArea(actor: Actor, input: unknown): Promise<Area> {
   requireAdminActor(actor);
   const parsed = taxonomySchema.parse(input);
   const slug = slugifyName(parsed.nameEn);
   const taken =
-    (await prisma.area.findUnique({ where: { slug }, select: { id: true } })) !==
-    null;
+    (await prisma.area.findUnique({
+      where: { slug },
+      select: { id: true },
+    })) !== null;
   if (taken) {
     throw new Error(`Area slug "${slug}" is already taken.`);
   }

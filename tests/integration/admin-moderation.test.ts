@@ -6,10 +6,11 @@
  * forbidden, taxonomy create is admin-only with unique slugs.
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import type { PrismaClient } from "@/generated/prisma/client";
 import type { Actor } from "@/features/listings/service";
+import type { PrismaClient } from "@/generated/prisma/client";
 
-const DATABASE_URL = "postgresql://coaching:coaching@localhost:5434/coaching_ngj";
+const DATABASE_URL =
+  "postgresql://coaching:coaching@localhost:5434/coaching_ngj";
 const runId = Date.now().toString(36);
 
 let prisma: PrismaClient;
@@ -33,7 +34,13 @@ async function makeUser(prefix: string, role: "OWNER" | "ADMIN") {
   await prisma.user.upsert({
     where: { id },
     update: {},
-    create: { id, name: id, email: `${id}@example.com`, emailVerified: true, role },
+    create: {
+      id,
+      name: id,
+      email: `${id}@example.com`,
+      emailVerified: true,
+      role,
+    },
   });
   ownerIds.push(id);
   return id;
@@ -64,7 +71,10 @@ async function addCover(coachingId: string) {
 }
 
 async function submitAs(ownerId: string, name: string) {
-  const created = await listings.createCoaching(ownerActor(ownerId), validInput(name));
+  const created = await listings.createCoaching(
+    ownerActor(ownerId),
+    validInput(name),
+  );
   await addCover(created.id);
   await listings.submitForReview(ownerActor(ownerId), created.id);
   return created;
@@ -80,13 +90,19 @@ describe("M6 admin moderation", () => {
     queries = await import("@/features/listings/queries");
     admin = await import("@/features/admin/service");
     areaId = (await prisma.area.findFirstOrThrow()).id;
-    categoryIds = (await prisma.category.findMany({ take: 2 })).map((c) => c.id);
+    categoryIds = (await prisma.category.findMany({ take: 2 })).map(
+      (c) => c.id,
+    );
   });
 
   afterAll(async () => {
     await prisma.coaching.deleteMany({ where: { ownerId: { in: ownerIds } } });
-    await prisma.area.deleteMany({ where: { slug: { startsWith: "m6-test-" } } });
-    await prisma.category.deleteMany({ where: { slug: { startsWith: "m6-test-" } } });
+    await prisma.area.deleteMany({
+      where: { slug: { startsWith: "m6-test-" } },
+    });
+    await prisma.category.deleteMany({
+      where: { slug: { startsWith: "m6-test-" } },
+    });
     await prisma.user.deleteMany({ where: { id: { in: ownerIds } } });
     await prisma.$disconnect();
     vi.unstubAllEnvs();
@@ -101,13 +117,19 @@ describe("M6 admin moderation", () => {
     expect(await queries.getPublishedBySlug(created.slug)).toBeNull();
 
     await listings.approveListing(adminActor(adminId), created.id);
-    expect((await queries.getPublishedBySlug(created.slug))?.name).toBe(`Pending ${tag}`);
+    expect((await queries.getPublishedBySlug(created.slug))?.name).toBe(
+      `Pending ${tag}`,
+    );
 
     await listings.archiveListing(adminActor(adminId), created.id);
     expect(await queries.getPublishedBySlug(created.slug)).toBeNull();
 
     const second = await submitAs(owner, `Rejected ${tag}`);
-    await listings.rejectListing(adminActor(adminId), second.id, "Not good enough");
+    await listings.rejectListing(
+      adminActor(adminId),
+      second.id,
+      "Not good enough",
+    );
     expect(await queries.getPublishedBySlug(second.slug)).toBeNull();
 
     const audits = await prisma.listingAuditLog.findMany({
@@ -119,13 +141,17 @@ describe("M6 admin moderation", () => {
       "PENDING→PUBLISHED",
       "PUBLISHED→ARCHIVED",
     ]);
-    expect(audits.every((a) => a.actorId === adminId || a.fromStatus === "DRAFT")).toBe(true);
+    expect(
+      audits.every((a) => a.actorId === adminId || a.fromStatus === "DRAFT"),
+    ).toBe(true);
   });
 
   it("forbids non-admins from moderating", async () => {
     const owner = await makeUser(`m6-forbid-owner-${ownerIds.length}`, "OWNER");
     const other = await makeUser(`m6-forbid-other-${ownerIds.length}`, "OWNER");
-    const { ForbiddenError, NotFoundError } = await import("@/lib/auth-helpers");
+    const { ForbiddenError, NotFoundError } = await import(
+      "@/lib/auth-helpers"
+    );
     const created = await submitAs(owner, `Forbid ${runId}`);
     await expect(
       listings.approveListing(ownerActor(other), created.id),
@@ -144,11 +170,15 @@ describe("M6 admin moderation", () => {
     const { ForbiddenError } = await import("@/lib/auth-helpers");
     const area = await admin.createArea(adminActor(adminId), {
       nameEn: "M6 Test Area",
-      nameBn: "M6 \u09AA\u09B0\u09C0\u0995\u09CD\u09B7\u09BE \u098F\u09B2\u09BE\u0995\u09BE",
+      nameBn:
+        "M6 \u09AA\u09B0\u09C0\u0995\u09CD\u09B7\u09BE \u098F\u09B2\u09BE\u0995\u09BE",
     });
     expect(area.slug).toBe("m6-test-area");
     await expect(
-      admin.createArea(adminActor(adminId), { nameEn: "M6 Test Area", nameBn: "x" }),
+      admin.createArea(adminActor(adminId), {
+        nameEn: "M6 Test Area",
+        nameBn: "x",
+      }),
     ).rejects.toThrow(/taken|exists|unique/i);
     await expect(
       admin.createArea(ownerActor(owner), { nameEn: "Other", nameBn: "y" }),
