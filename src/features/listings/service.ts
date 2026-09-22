@@ -270,7 +270,7 @@ export async function archiveListing(
 }
 
 /** Adapt an already-resolved actor to the guards' resolver seam. */
-function actorResolver(actor: Actor): SessionResolver {
+export function actorResolver(actor: Actor): SessionResolver {
   return async () => ({
     user: {
       id: actor.id,
