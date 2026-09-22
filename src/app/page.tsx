@@ -39,7 +39,6 @@ export default async function Home() {
             method="get"
             action="/coachings"
             className="mt-10 flex max-w-xl gap-2"
-            role="search"
           >
             <label htmlFor="home-q" className="sr-only">
               Search coaching centres

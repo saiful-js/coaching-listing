@@ -1,4 +1,13 @@
 export default function CoachingsLoading() {
+  const skeletonKeys = [
+    "skeleton-1",
+    "skeleton-2",
+    "skeleton-3",
+    "skeleton-4",
+    "skeleton-5",
+    "skeleton-6",
+  ];
+
   return (
     <div
       className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6"
@@ -10,9 +19,9 @@ export default function CoachingsLoading() {
         All coaching centres
       </h1>
       <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }, (_, i) => (
+        {skeletonKeys.map((key) => (
           <li
-            key={i}
+            key={key}
             className="overflow-hidden rounded-sm border border-line bg-paper-raised"
           >
             <div className="aspect-[16/10] w-full animate-pulse bg-forest-mist" />
