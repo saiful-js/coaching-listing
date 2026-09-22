@@ -1,12 +1,23 @@
 import Link from "next/link";
-import { areas, categories } from "@/config/taxonomy";
+import {
+  allCategories,
+  areasWithCounts,
+  latestPublished,
+} from "@/features/listings";
+import { ListingCard } from "@/features/listings/components/listing-card";
 
 /**
- * Static foundation page (M0). Data arrives from the database in M5 — until
- * then the area/category lists render from src/config/taxonomy.ts and listing
- * counts are placeholders.
+ * Home (M5: data-driven). Search box, area chips with live counts, and the
+ * latest published listings. Still fully static-renderable output per
+ * request — no client JavaScript.
  */
-export default function Home() {
+export default async function Home() {
+  const [areas, categories, latest] = await Promise.all([
+    areasWithCounts(),
+    allCategories(),
+    latestPublished(6),
+  ]);
+
   return (
     <>
       {/* Hero */}
@@ -21,18 +32,30 @@ export default function Home() {
             from Sadar to Sonargaon. Free to browse, with phone and WhatsApp on
             every listing.
           </p>
-          <div className="mt-10 flex flex-wrap items-center gap-3">
-            <Link href="/coachings" className="btn btn-primary">
-              Browse coachings
-            </Link>
-            <Link href="/#areas" className="btn btn-secondary">
-              Explore areas
-            </Link>
-          </div>
+          <form
+            method="get"
+            action="/coachings"
+            className="mt-10 flex max-w-xl gap-2"
+            role="search"
+          >
+            <label htmlFor="home-q" className="sr-only">
+              Search coaching centres
+            </label>
+            <input
+              id="home-q"
+              name="q"
+              type="search"
+              placeholder="Try a name, road, or “HSC”…"
+              className="h-12 w-full rounded-sm border border-line-strong bg-paper-raised px-4 text-sm text-ink placeholder:text-ink-faint"
+            />
+            <button type="submit" className="btn btn-primary shrink-0">
+              Search
+            </button>
+          </form>
         </div>
       </section>
 
-      {/* Areas — editorial list, not a card grid */}
+      {/* Areas */}
       <section id="areas" className="scroll-mt-16 border-b border-line">
         <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
           <div className="flex items-baseline justify-between gap-4">
@@ -47,14 +70,16 @@ export default function Home() {
             {areas.map((area) => (
               <li key={area.slug} className="border-b border-line">
                 <Link
-                  href={`/coachings?area=${area.slug}`}
+                  href={`/areas/${area.slug}`}
                   className="group flex items-baseline justify-between gap-4 py-4 pr-2 transition-colors hover:bg-paper-raised"
                 >
                   <span className="font-display text-lg font-medium tracking-tight">
-                    {area.nameEn}
+                    <span className="font-content">{area.nameEn}</span>
                   </span>
                   <span className="flex items-center gap-3 font-mono text-xs text-ink-faint">
-                    <span>— listings</span>
+                    <span>
+                      {area.count} {area.count === 1 ? "listing" : "listings"}
+                    </span>
                     <span
                       aria-hidden
                       className="transition-transform group-hover:translate-x-0.5"
@@ -82,13 +107,39 @@ export default function Home() {
                   href={`/coachings?category=${category.slug}`}
                   className="inline-flex h-9 items-center rounded-full border border-line bg-paper-raised px-4 text-sm text-ink-soft transition-colors hover:border-ink-soft hover:text-ink"
                 >
-                  {category.nameEn}
+                  <span className="font-content">{category.nameEn}</span>
                 </Link>
               </li>
             ))}
           </ul>
         </div>
       </section>
+
+      {/* Latest */}
+      {latest.length > 0 && (
+        <section className="border-b border-line">
+          <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+            <div className="flex items-baseline justify-between gap-4">
+              <h2 className="font-display text-2xl font-medium tracking-tight sm:text-3xl">
+                Newly listed
+              </h2>
+              <Link
+                href="/coachings"
+                className="font-mono text-xs text-ink-soft underline underline-offset-4 hover:text-ink"
+              >
+                View all →
+              </Link>
+            </div>
+            <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {latest.map((item) => (
+                <li key={item.id}>
+                  <ListingCard item={item} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
 
       {/* Owners */}
       <section id="owners" className="scroll-mt-16">
