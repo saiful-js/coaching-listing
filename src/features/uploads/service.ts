@@ -7,6 +7,8 @@ import {
 import type { CoachingImage } from "@/generated/prisma/client";
 import { NotFoundError, requireOwnerOf } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
+import { RateLimitedError } from "@/features/listings/service";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 export interface IncomingFile {
   bytes: Buffer;
@@ -25,7 +27,12 @@ function assertValidFile(file: IncomingFile) {
   if (!ALLOWED_TYPES.has(file.contentType)) {
     throw new Error("Only JPEG, PNG, or WebP image types are allowed.");
   }
-  if (file.size <= 0 || file.size > MAX_IMAGE_BYTES) {
+  // Check the bytes actually forwarded, not only the claimed size.
+  if (
+    file.size <= 0 ||
+    file.size > MAX_IMAGE_BYTES ||
+    file.bytes.length > MAX_IMAGE_BYTES
+  ) {
     throw new Error("Each image must be 5 MB or smaller.");
   }
   if (file.bytes.length === 0) {
@@ -53,6 +60,16 @@ export async function uploadCoachingImage(
   options: { asCover?: boolean } = {},
 ): Promise<CoachingImage> {
   assertValidFile(file);
+  // Quota burner guard (PRD §10): uploads cost Cloudinary quota + server
+  // memory per request; loop upload→delete is the abuse shape.
+  const budget = await consumeRateLimit({
+    key: `upload-image:${actor.id}`,
+    limit: 20,
+    windowMs: 3_600_000,
+  });
+  if (!budget.allowed) {
+    throw new RateLimitedError();
+  }
   await ownedCoachingOr404(actor, coachingId);
   const existing = await prisma.coachingImage.findMany({
     where: { coachingId },
@@ -68,24 +85,38 @@ export async function uploadCoachingImage(
   const uploaded = await client.upload(file.bytes, {
     folder: `coachings/${coachingId}`,
   });
-  return prisma.$transaction(async (tx) => {
-    if (makeCover) {
-      await tx.coachingImage.updateMany({
-        where: { coachingId },
-        data: { isCover: false },
+  try {
+    return await prisma.$transaction(async (tx) => {
+      if (makeCover) {
+        await tx.coachingImage.updateMany({
+          where: { coachingId },
+          data: { isCover: false },
+        });
+      }
+      return tx.coachingImage.create({
+        data: {
+          coachingId,
+          key: uploaded.publicId,
+          width: uploaded.width,
+          height: uploaded.height,
+          isCover: makeCover,
+          sortOrder: existing.length,
+        },
       });
-    }
-    return tx.coachingImage.create({
-      data: {
-        coachingId,
-        key: uploaded.publicId,
-        width: uploaded.width,
-        height: uploaded.height,
-        isCover: makeCover,
-        sortOrder: existing.length,
-      },
     });
-  });
+  } catch (error) {
+    // The cloud object has no DB row pointing at it — best-effort cleanup
+    // so a failed write cannot strand billable storage (see IM-04).
+    await client.destroy(uploaded.publicId).catch(() => {});
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      (error as { code?: string }).code === "P2002"
+    ) {
+      throw new Error("That upload collided. Try again.");
+    }
+    throw error;
+  }
 }
 
 async function ownedImageOr404(actor: Actor, imageId: string) {
@@ -107,10 +138,11 @@ export async function deleteCoachingImage(
   const image = await ownedImageOr404(actor, imageId);
   try {
     await client.destroy(image.key);
-  } catch {
+  } catch (error) {
     // The DB row is the source of truth for what we show; a cloud object
     // that is already gone (or briefly unreachable) must not strand it.
-    console.error("Cloudinary destroy failed");
+    // Log the key so orphans stay enumerable for the future sweeper.
+    console.error("Cloudinary destroy failed", { key: image.key, error });
   }
   const deleted = await prisma.coachingImage.delete({ where: { id: imageId } });
   if (deleted.isCover) {

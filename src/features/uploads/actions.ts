@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { ZodError } from "zod";
+import { z, ZodError } from "zod";
 import { resolveActor } from "@/features/listings/service";
 import {
   deleteCoachingImage,
@@ -15,14 +15,38 @@ export interface UploadActionResult {
   error?: string;
 }
 
+const idSchema = z.string().min(1).max(100);
+
+/**
+ * Default-deny error mapping: only known-safe messages reach the client.
+ * Third-party text (Cloudinary, Prisma, network) is logged server-side and
+ * replaced — error objects can carry cloud names and request internals.
+ */
+const SAFE_MESSAGE_PREFIXES = [
+  "Only JPEG",
+  "Each image must be",
+  "Image limit reached",
+  "Choose an image file first.",
+  "Empty file.",
+  "Add a cover photo",
+  "Not found",
+  "Forbidden",
+  "Too many attempts",
+  "Image uploads are not configured.",
+  "That upload collided.",
+];
+
 function toError(error: unknown): UploadActionResult {
   if (error instanceof ZodError) {
     return { ok: false, error: error.issues[0]?.message ?? "Invalid input." };
   }
-  if (error instanceof Error && !("code" in error)) {
+  if (
+    error instanceof Error &&
+    SAFE_MESSAGE_PREFIXES.some((prefix) => error.message.startsWith(prefix))
+  ) {
     return { ok: false, error: error.message };
   }
-  console.error("Upload action failed");
+  console.error("Upload action failed", error);
   return { ok: false, error: "Something went wrong." };
 }
 
@@ -33,6 +57,7 @@ export async function uploadImageAction(
   asCover = false,
 ): Promise<UploadActionResult> {
   try {
+    const id = idSchema.parse(coachingId);
     const file = formData.get("file");
     if (!(file instanceof File) || file.size === 0) {
       return { ok: false, error: "Choose an image file first." };
@@ -40,7 +65,7 @@ export async function uploadImageAction(
     const actor = await resolveActor();
     const image = await uploadCoachingImage(
       actor,
-      coachingId,
+      id,
       {
         bytes: Buffer.from(await file.arrayBuffer()),
         contentType: file.type,
@@ -60,10 +85,11 @@ export async function deleteImageAction(
   imageId: string,
 ): Promise<UploadActionResult> {
   try {
+    const id = idSchema.parse(imageId);
     const actor = await resolveActor();
-    await deleteCoachingImage(actor, imageId);
+    await deleteCoachingImage(actor, id);
     revalidatePath("/dashboard");
-    return { ok: true, id: imageId };
+    return { ok: true, id };
   } catch (error) {
     return toError(error);
   }
@@ -73,8 +99,9 @@ export async function setCoverAction(
   imageId: string,
 ): Promise<UploadActionResult> {
   try {
+    const id = idSchema.parse(imageId);
     const actor = await resolveActor();
-    const image = await setCoverImage(actor, imageId);
+    const image = await setCoverImage(actor, id);
     revalidatePath("/dashboard");
     return { ok: true, id: image.id };
   } catch (error) {

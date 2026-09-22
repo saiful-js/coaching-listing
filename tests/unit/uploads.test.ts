@@ -234,8 +234,7 @@ describe("M4 uploads service", () => {
     expect(gone).toBeNull();
   });
 
-  it("flips the cover with setCoverImage", async () => {
-    const uid = await makeOwner();
+  it("flips the cover with setCoverImage", async () => {    const uid = await makeOwner();
     const coaching = await makeCoaching(uid, `SetCover ${runId}`);
     const first = await uploads.uploadCoachingImage(
       ownerActor(uid),
@@ -255,5 +254,99 @@ describe("M4 uploads service", () => {
     });
     expect(covers.map((c) => c.id)).toEqual([second.id]);
     expect(first.id).not.toBe(second.id);
+  });
+
+  it("enforces single-cover at the database level", async () => {
+    const uid = await makeOwner();
+    const coaching = await makeCoaching(uid, `DbCover ${runId}`);
+    await prisma.coachingImage.create({
+      data: {
+        coachingId: coaching.id,
+        key: `test/${runId}/c1`,
+        width: 100,
+        height: 100,
+        isCover: true,
+      },
+    });
+    await expect(
+      prisma.coachingImage.create({
+        data: {
+          coachingId: coaching.id,
+          key: `test/${runId}/c2`,
+          width: 100,
+          height: 100,
+          isCover: true,
+        },
+      }),
+    ).rejects.toMatchObject({ code: "P2002" });
+  });
+
+  it("cleans up the cloud object when the DB write fails", async () => {
+    const uid = await makeOwner();
+    const coaching = await makeCoaching(uid, `Orphan ${runId}`);
+    await prisma.coachingImage.create({
+      data: {
+        coachingId: coaching.id,
+        key: "test/colliding-key",
+        width: 100,
+        height: 100,
+        isCover: false,
+      },
+    });
+    const collidingClient: CloudinaryUploader = {
+      ...fakeClient,
+      upload: async () => ({ publicId: "test/colliding-key", width: 1, height: 1 }),
+    };
+    await expect(
+      uploads.uploadCoachingImage(
+        ownerActor(uid),
+        coaching.id,
+        jpeg(),
+        collidingClient,
+      ),
+    ).rejects.toThrow(/collided/i);
+    expect(destroyed).toContain("test/colliding-key");
+  });
+
+  it("rate-limits uploads per owner", async () => {
+    const uid = await makeOwner();
+    const coachings = [];
+    for (let i = 0; i < 4; i++) {
+      coachings.push(await makeCoaching(uid, `Rate ${runId} ${i}`));
+    }
+    for (let i = 0; i < 20; i++) {
+      await uploads.uploadCoachingImage(
+        ownerActor(uid),
+        coachings[i % 4]!.id,
+        jpeg(),
+        fakeClient,
+      );
+    }
+    const { RateLimitedError } = await import("@/features/listings/service");
+    await expect(
+      uploads.uploadCoachingImage(
+        ownerActor(uid),
+        coachings[0]!.id,
+        jpeg(),
+        fakeClient,
+      ),
+    ).rejects.toBeInstanceOf(RateLimitedError);
+  });
+
+  it("checks the actual byte length, not only the claimed size", async () => {
+    const uid = await makeOwner();
+    const coaching = await makeCoaching(uid, `Bytes ${runId}`);
+    await expect(
+      uploads.uploadCoachingImage(
+        ownerActor(uid),
+        coaching.id,
+        {
+          bytes: Buffer.alloc(6 * 1024 * 1024),
+          contentType: "image/jpeg",
+          size: 100,
+        },
+        fakeClient,
+      ),
+    ).rejects.toThrow(/5 ?MB/i);
   });
 });
