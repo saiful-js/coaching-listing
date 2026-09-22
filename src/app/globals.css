@@ -45,6 +45,17 @@ body {
   @apply bg-paper font-sans text-ink antialiased;
 }
 
+/* Anchor navigation (#areas, #owners) glides instead of jumping. */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 ::selection {
   background-color: var(--color-forest);
   color: var(--color-paper);

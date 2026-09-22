@@ -4,7 +4,7 @@ import { site } from "@/config/site";
 
 export function SiteHeader() {
   return (
-    <header className="border-b border-line">
+    <header className="sticky top-0 z-50 border-b border-line bg-paper">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link
           href="/"
