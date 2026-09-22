@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type { ListingStatus } from "@/generated/prisma/client";
 import {
   canArchive,
   canEdit,
@@ -7,6 +6,7 @@ import {
   canSubmit,
   isTransitionAllowed,
 } from "@/features/listings/policies";
+import type { ListingStatus } from "@/generated/prisma/client";
 
 describe("listing transition matrix (src/features/listings/policies.ts)", () => {
   const allowed: [ListingStatus, ListingStatus][] = [
@@ -43,7 +43,12 @@ describe("listing transition matrix (src/features/listings/policies.ts)", () => 
 
 describe("listing policies", () => {
   it("owners edit drafts/rejected/pending/published, never archived", () => {
-    for (const status of ["DRAFT", "REJECTED", "PENDING", "PUBLISHED"] as const) {
+    for (const status of [
+      "DRAFT",
+      "REJECTED",
+      "PENDING",
+      "PUBLISHED",
+    ] as const) {
       expect(canEdit("OWNER", true, status)).toBe(true);
     }
     expect(canEdit("OWNER", true, "ARCHIVED")).toBe(false);

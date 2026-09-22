@@ -1,14 +1,3 @@
-import type { Coaching, ListingStatus } from "@/generated/prisma/client";
-import {
-  ForbiddenError,
-  NotFoundError,
-  requireAdmin,
-  requireOwnerOf,
-  requireUser,
-  type SessionResolver,
-} from "@/lib/auth-helpers";
-import { prisma } from "@/lib/db";
-import { consumeRateLimit } from "@/lib/rate-limit";
 import {
   canArchive,
   canEdit,
@@ -21,6 +10,16 @@ import {
   updateCoachingSchema,
 } from "@/features/listings/schemas";
 import { generateSlug } from "@/features/listings/slug";
+import type { Coaching, ListingStatus } from "@/generated/prisma/client";
+import {
+  ForbiddenError,
+  NotFoundError,
+  requireOwnerOf,
+  requireUser,
+  type SessionResolver,
+} from "@/lib/auth-helpers";
+import { prisma } from "@/lib/db";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 export interface Actor {
   id: string;
@@ -44,9 +43,7 @@ export class RateLimitedError extends Error {
  * pass the actor into the service functions below — the service itself never
  * touches `next/headers`, which keeps it testable.
  */
-export async function resolveActor(
-  resolver?: SessionResolver,
-): Promise<Actor> {
+export async function resolveActor(resolver?: SessionResolver): Promise<Actor> {
   const user = await requireUser(resolver);
   return {
     id: user.id,
@@ -104,9 +101,7 @@ async function transitionTo(
     throw new NotFoundError();
   }
   if (!isTransitionAllowed(current.status, to)) {
-    throw new Error(
-      `Cannot move a listing from ${current.status} to ${to}.`,
-    );
+    throw new Error(`Cannot move a listing from ${current.status} to ${to}.`);
   }
   return prisma.$transaction(async (tx) => {
     const updated = await tx.coaching.update({
@@ -185,7 +180,9 @@ export async function updateCoaching(
     throw new NotFoundError();
   }
   const isOwner = coaching.ownerId === actor.id;
-  if (!canEdit(actor.role, isOwner || actor.role === "ADMIN", coaching.status)) {
+  if (
+    !canEdit(actor.role, isOwner || actor.role === "ADMIN", coaching.status)
+  ) {
     throw new ForbiddenError();
   }
   await assertAreaAndCategories(parsed.areaId, parsed.categoryIds);

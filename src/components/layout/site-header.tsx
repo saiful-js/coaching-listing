@@ -39,6 +39,12 @@ export function SiteHeader() {
           >
             Log in
           </Link>
+          <Link
+            href="/dashboard"
+            className="text-ink-soft transition-colors hover:text-ink"
+          >
+            Dashboard
+          </Link>
         </nav>
       </div>
     </header>

@@ -6,10 +6,11 @@
  * 404-not-403, full transition matrix with audit rows.
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import type { PrismaClient } from "@/generated/prisma/client";
 import type { Actor } from "@/features/listings/service";
+import type { PrismaClient } from "@/generated/prisma/client";
 
-const DATABASE_URL = "postgresql://coaching:coaching@localhost:5434/coaching_ngj";
+const DATABASE_URL =
+  "postgresql://coaching:coaching@localhost:5434/coaching_ngj";
 const runId = Date.now().toString(36);
 
 let prisma: PrismaClient;
@@ -138,14 +139,20 @@ describe("M3 listing service", () => {
       where: { coachingId: created.id },
     });
     expect(audits).toHaveLength(1);
-    expect(audits[0]).toMatchObject({ fromStatus: "DRAFT", toStatus: "PENDING" });
+    expect(audits[0]).toMatchObject({
+      fromStatus: "DRAFT",
+      toStatus: "PENDING",
+    });
   });
 
   it("caps owners at 5 active listings", async () => {
     const uid = `m3-owner-cap-${runId}`;
     await makeUser(uid, "OWNER");
     for (let i = 0; i < 5; i++) {
-      await service.createCoaching(ownerActor(uid), validInput(`Cap ${runId} ${i}`));
+      await service.createCoaching(
+        ownerActor(uid),
+        validInput(`Cap ${runId} ${i}`),
+      );
     }
     await expect(
       service.createCoaching(ownerActor(uid), validInput(`Cap ${runId} 5`)),
@@ -163,7 +170,11 @@ describe("M3 listing service", () => {
     );
     const { NotFoundError } = await import("@/lib/auth-helpers");
     await expect(
-      service.updateCoaching(ownerActor(uidB), created.id, validInput(`Hijack ${runId}`)),
+      service.updateCoaching(
+        ownerActor(uidB),
+        created.id,
+        validInput(`Hijack ${runId}`),
+      ),
     ).rejects.toBeInstanceOf(NotFoundError);
     await expect(
       service.submitForReview(ownerActor(uidB), created.id),
@@ -185,7 +196,10 @@ describe("M3 listing service", () => {
     ).rejects.toThrow(/cannot move/i);
 
     await service.submitForReview(ownerActor(uid), created.id);
-    const published = await service.approveListing(adminActor(admin), created.id);
+    const published = await service.approveListing(
+      adminActor(admin),
+      created.id,
+    );
     expect(published.status).toBe("PUBLISHED");
     expect(published.publishedAt).toBeInstanceOf(Date);
 
@@ -223,7 +237,10 @@ describe("M3 listing service", () => {
     );
     expect(rejected.status).toBe("REJECTED");
     expect(rejected.rejectionReason).toBe("Address looks wrong");
-    const resubmitted = await service.submitForReview(ownerActor(uid), created.id);
+    const resubmitted = await service.submitForReview(
+      ownerActor(uid),
+      created.id,
+    );
     expect(resubmitted.status).toBe("PENDING");
 
     const audits = await prisma.listingAuditLog.findMany({
