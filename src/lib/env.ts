@@ -43,6 +43,13 @@ const serverEnvSchema = z
     SMTP_PASS: z.string().min(1).optional(),
     /** From header; defaults to the SMTP user. */
     SMTP_FROM: z.string().min(1).optional(),
+    // ── Cloudinary images (ADR 0004) ──────────────────────────────────
+    // Uploads fail loud at use-time while these are unset.
+    /** Cloudinary cloud name (also builds delivery URLs). */
+    CLOUDINARY_CLOUD_NAME: z.string().min(1).optional(),
+    CLOUDINARY_API_KEY: z.string().min(1).optional(),
+    /** Cloudinary API secret — server-only, never NEXT_PUBLIC_*. */
+    CLOUDINARY_API_SECRET: z.string().min(1).optional(),
     /** Cloudflare Turnstile secret (M2 gate; required in production). */
     TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
     /** Google OAuth client id/secret (M2 gate; provider enabled only if both set). */
@@ -81,6 +88,18 @@ const serverEnvSchema = z
         path: ["SMTP_USER"],
         message:
           "SMTP_USER and SMTP_PASS are required in production (verification/reset mail)",
+      });
+    }
+    if (
+      !val.CLOUDINARY_CLOUD_NAME ||
+      !val.CLOUDINARY_API_KEY ||
+      !val.CLOUDINARY_API_SECRET
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["CLOUDINARY_CLOUD_NAME"],
+        message:
+          "CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET are required in production (listing images)",
       });
     }
     if (!val.TURNSTILE_SECRET_KEY) {

@@ -48,6 +48,9 @@ describe("env validation (src/lib/env.ts)", () => {
     expect(env.SMTP_USER).toBeUndefined();
     expect(env.SMTP_HOST).toBe("smtp.gmail.com");
     expect(env.SMTP_PORT).toBe(587);
+    expect(env.CLOUDINARY_CLOUD_NAME).toBeUndefined();
+    expect(env.CLOUDINARY_API_KEY).toBeUndefined();
+    expect(env.CLOUDINARY_API_SECRET).toBeUndefined();
     expect(env.TURNSTILE_SECRET_KEY).toBeUndefined();
     expect(env.GOOGLE_CLIENT_ID).toBeUndefined();
     expect(env.GOOGLE_CLIENT_SECRET).toBeUndefined();
@@ -87,15 +90,16 @@ describe("env validation (src/lib/env.ts)", () => {
     await expect(import("@/lib/env")).rejects.toThrow(/APP_URL/);
   });
 
-  it("requires SMTP and Turnstile keys in production", async () => {
+  it("requires SMTP, Cloudinary, and Turnstile keys in production", async () => {
     stubEnv({
       NODE_ENV: "production",
       BETTER_AUTH_SECRET: "prod-secret-0123456789abcdef0123456789",
       APP_URL: "https://coaching.example.com",
+      SMTP_USER: "app@example.com",
+      SMTP_PASS: "app-password",
+      TURNSTILE_SECRET_KEY: "prod-turnstile-secret",
     });
-    await expect(import("@/lib/env")).rejects.toThrow(
-      /SMTP_USER|TURNSTILE_SECRET_KEY/,
-    );
+    await expect(import("@/lib/env")).rejects.toThrow(/CLOUDINARY/);
   });
 
   it("accepts a fully provisioned production environment", async () => {
@@ -105,6 +109,9 @@ describe("env validation (src/lib/env.ts)", () => {
       APP_URL: "https://coaching.example.com",
       SMTP_USER: "app@example.com",
       SMTP_PASS: "app-password",
+      CLOUDINARY_CLOUD_NAME: "demo",
+      CLOUDINARY_API_KEY: "key",
+      CLOUDINARY_API_SECRET: "secret",
       TURNSTILE_SECRET_KEY: "prod-turnstile-secret",
     });
     const { env } = await import("@/lib/env");
