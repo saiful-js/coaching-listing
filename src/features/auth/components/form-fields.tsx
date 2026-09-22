@@ -44,3 +44,18 @@ export function FormNote({ children }: { children: ReactNode }) {
     </p>
   );
 }
+
+/**
+ * Turnstile token header for captcha-protected endpoints (docs-prescribed
+ * `x-captcha-response`). The widget lands at provisioning time with
+ * `NEXT_PUBLIC_TURNSTILE_SITE_KEY`; until then no token exists and the
+ * server-side captcha plugin stays uninstalled, so this is a no-op.
+ */
+export function captchaHeaders(token?: string): {
+  fetchOptions?: { headers: Record<string, string> };
+} {
+  if (!token) {
+    return {};
+  }
+  return { fetchOptions: { headers: { "x-captcha-response": token } } };
+}

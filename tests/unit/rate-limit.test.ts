@@ -26,6 +26,15 @@ describe("DB-backed rate limiter (src/lib/rate-limit.ts)", () => {
     vi.resetModules();
   });
 
+  it("rejects empty keys instead of sharing one bucket", async () => {
+    await expect(
+      consumeRateLimit({ key: "", limit: 3, windowMs: 60_000 }),
+    ).rejects.toThrow(/key/);
+    await expect(
+      consumeRateLimit({ key: "   ", limit: 3, windowMs: 60_000 }),
+    ).rejects.toThrow(/key/);
+  });
+
   it("allows up to the limit, then denies", async () => {
     const key = uniqueKey("allow");
     for (let i = 0; i < 3; i++) {

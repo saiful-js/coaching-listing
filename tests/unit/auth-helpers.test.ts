@@ -4,13 +4,19 @@ const DATABASE_URL =
   "postgresql://coaching:coaching@localhost:5434/coaching_ngj";
 
 type Resolver = () => Promise<{
-  user: { id: string; email: string; role: string };
+  user: {
+    id: string;
+    email: string;
+    role: "OWNER" | "ADMIN";
+    emailVerified: boolean;
+  };
 } | null>;
 
 let requireUser: (resolver?: Resolver) => Promise<{
   id: string;
   email: string;
-  role: string;
+  role: "OWNER" | "ADMIN";
+  emailVerified: boolean;
 }>;
 let requireAdmin: typeof requireUser;
 let requireOwnerOf: (
@@ -22,13 +28,28 @@ let ForbiddenError: new () => Error;
 let NotFoundError: new () => Error;
 
 const owner = () => ({
-  user: { id: "guard-test-owner", email: "owner@example.com", role: "OWNER" },
+  user: {
+    id: "guard-test-owner",
+    email: "owner@example.com",
+    role: "OWNER" as const,
+    emailVerified: false,
+  },
 });
 const other = () => ({
-  user: { id: "guard-test-other", email: "other@example.com", role: "OWNER" },
+  user: {
+    id: "guard-test-other",
+    email: "other@example.com",
+    role: "OWNER" as const,
+    emailVerified: true,
+  },
 });
 const admin = () => ({
-  user: { id: "guard-test-admin", email: "admin@example.com", role: "ADMIN" },
+  user: {
+    id: "guard-test-admin",
+    email: "admin@example.com",
+    role: "ADMIN" as const,
+    emailVerified: true,
+  },
 });
 const anonymous = () => Promise.resolve(null);
 
@@ -50,6 +71,7 @@ describe("server guards (src/lib/auth-helpers.ts)", () => {
   it("requireUser returns the session user", async () => {
     await expect(requireUser(async () => owner())).resolves.toMatchObject({
       id: "guard-test-owner",
+      emailVerified: false,
     });
   });
 

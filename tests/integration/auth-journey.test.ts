@@ -10,13 +10,14 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 const ORIGIN = "http://localhost:3000";
 
+import type { PrismaClient } from "@/generated/prisma/client";
+import type { OutgoingEmail } from "@/lib/email";
+
 let GET: (req: Request) => Promise<Response>;
 let POST: (req: Request) => Promise<Response>;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let prisma: any;
+let prisma: PrismaClient;
 let clearEmailOutbox: () => void;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let emailOutbox: any[];
+let emailOutbox: OutgoingEmail[];
 
 const runId = Date.now().toString(36);
 const email = `journey-${runId}@example.com`;
@@ -24,9 +25,7 @@ const password = "s3cure-pass";
 const newPassword = "n3w-secure-pass";
 
 function cookieHeader(setCookies: string[]): string {
-  return setCookies
-    .map((header) => header.split(";")[0])
-    .join("; ");
+  return setCookies.map((header) => header.split(";")[0]).join("; ");
 }
 
 function lastMailUrl(): string {
@@ -74,7 +73,12 @@ describe("M2 auth journey", () => {
       new Request(`${ORIGIN}/api/auth/sign-up/email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "Journey Owner", email, password }),
+        body: JSON.stringify({
+          name: "Journey Owner",
+          email,
+          password,
+          callbackURL: "/verify-email?verified=1",
+        }),
       }),
     );
     expect(res.status).toBe(200);
@@ -86,6 +90,10 @@ describe("M2 auth journey", () => {
     const res = await GET(new Request(lastMailUrl()));
     // Better Auth redirects to the callback URL after verifying.
     expect([200, 302, 307]).toContain(res.status);
+    // The register form's callbackURL carries ?verified=1 so the landing
+    // page can show the success state instead of "check your inbox".
+    const location = res.headers.get("location") ?? "";
+    expect(location).toContain("verified=1");
     const user = await prisma.user.findUnique({ where: { email } });
     expect(user?.emailVerified).toBe(true);
   });

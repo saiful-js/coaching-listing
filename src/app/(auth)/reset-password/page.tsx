@@ -13,7 +13,8 @@ export default async function ResetPasswordPage({
   const params = await searchParams;
   const raw = params.token;
   const token = Array.isArray(raw) ? raw[0] : (raw ?? null);
-  const invalid = params.error === "INVALID_TOKEN";
+  // Any error value means the link is dead — show the invalid state.
+  const invalid = typeof params.error === "string";
   return (
     <div className="mx-auto w-full max-w-md px-4 py-12 sm:px-6">
       <p className="eyebrow">Account recovery</p>

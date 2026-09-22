@@ -3,9 +3,20 @@
 import { useState } from "react";
 import { authClient } from "@/features/auth/client";
 import { forgotPasswordSchema } from "@/features/auth/schemas";
-import { Field, FormError, FormNote, TextInput } from "./form-fields";
+import {
+  captchaHeaders,
+  Field,
+  FormError,
+  FormNote,
+  TextInput,
+} from "./form-fields";
 
-export function ForgotPasswordForm() {
+export function ForgotPasswordForm({
+  captchaToken,
+}: {
+  /** Turnstile token once the widget is provisioned; omitted until then. */
+  captchaToken?: string;
+}) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -25,6 +36,7 @@ export function ForgotPasswordForm() {
     await authClient.requestPasswordReset(
       { ...parsed.data, redirectTo: "/reset-password" },
       {
+        ...captchaHeaders(captchaToken),
         onSuccess: () => {
           setSent(true);
           setPending(false);

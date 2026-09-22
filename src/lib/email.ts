@@ -22,10 +22,13 @@ export function clearEmailOutbox(): void {
 }
 
 export async function sendEmail(email: OutgoingEmail): Promise<void> {
-  emailOutbox.push(email);
+  // No provider key: dev/test stub — record only, never deliver.
   if (!env.RESEND_API_KEY) {
+    emailOutbox.push(email);
     return;
   }
+  // Keyed path: deliver for real and retain nothing (tokens must not pile
+  // up in server memory).
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {

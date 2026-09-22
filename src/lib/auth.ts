@@ -28,6 +28,9 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  // Public origin: emailed verify/reset links + OAuth redirect_uris derive
+  // from here instead of per-request inference (validated, https in prod).
+  baseURL: env.APP_URL,
   secret: env.BETTER_AUTH_SECRET,
   // Persisted (database) because serverless instances do not share memory.
   // PRD FR-1 AC: 6+ wrong passwords in a short window → rate-limited.
@@ -47,6 +50,15 @@ export const auth = betterAuth({
   // Turnstile only when provisioned; without a secret the plugin stays out
   // and the dev-stub behavior in src/lib/turnstile.ts applies (open outside
   // production, closed in production).
+  //
+  // Provisioning checklist (do all three together — a secret without the
+  // client token breaks every form, see C-2 review 2026-09-22):
+  // 1. Set TURNSTILE_SECRET_KEY (+ required in production by src/lib/env.ts).
+  // 2. Add NEXT_PUBLIC_TURNSTILE_SITE_KEY + a Turnstile widget on the
+  //    register/login/forgot pages.
+  // 3. Pass the widget token as the forms' `captchaToken` prop (sent as the
+  //    docs-prescribed `x-captcha-response` header via captchaHeaders()).
+  // 4. Re-run the auth journey with the secret set to prove it still passes.
   plugins: [
     ...(env.TURNSTILE_SECRET_KEY
       ? [

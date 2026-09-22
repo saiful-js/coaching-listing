@@ -23,6 +23,10 @@ export interface RateLimitDecision {
  *
  * One row per allowed attempt in `RateLimitHit`. Rows outside the window
  * are deleted on every call, so the table stays small without a cron job.
+ * Known limit: check-then-insert is not atomic under concurrency (bursts can
+ * overshoot by a few), and per-key pruning means distinct-key floods need a
+ * periodic sweep — acceptable for M3/M4 mutation guards, not for auth
+ * endpoints (those use the built-in persisted limiter).
  */
 export async function consumeRateLimit({
   key,
@@ -32,6 +36,11 @@ export async function consumeRateLimit({
 }: ConsumeRateLimitArgs): Promise<RateLimitDecision> {
   if (!Number.isInteger(limit) || limit < 1) {
     throw new Error("consumeRateLimit: limit must be a positive integer");
+  }
+  if (key.trim().length === 0) {
+    throw new Error(
+      "consumeRateLimit: key must be non-empty (an empty key would share one bucket across callers)",
+    );
   }
   if (!Number.isFinite(windowMs) || windowMs <= 0) {
     throw new Error("consumeRateLimit: windowMs must be positive");

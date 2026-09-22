@@ -63,4 +63,47 @@ describe("env validation (src/lib/env.ts)", () => {
     expect(env.BETTER_AUTH_SECRET).toBe("test-secret-with-enough-length");
     expect(env.GOOGLE_CLIENT_ID).toBe("google-client-id");
   });
+
+  it("accepts production without provisioning keys outside production only", async () => {
+    stubEnv({ NODE_ENV: "test" });
+    const { env } = await import("@/lib/env");
+    expect(env.NODE_ENV).toBe("test");
+  });
+
+  it("requires BETTER_AUTH_SECRET in production", async () => {
+    stubEnv({ NODE_ENV: "production", BETTER_AUTH_SECRET: "" });
+    await expect(import("@/lib/env")).rejects.toThrow(/BETTER_AUTH_SECRET/);
+  });
+
+  it("requires a non-localhost https APP_URL in production", async () => {
+    stubEnv({
+      NODE_ENV: "production",
+      BETTER_AUTH_SECRET: "prod-secret-0123456789abcdef0123456789",
+      APP_URL: "http://localhost:3000",
+    });
+    await expect(import("@/lib/env")).rejects.toThrow(/APP_URL/);
+  });
+
+  it("requires Resend and Turnstile keys in production", async () => {
+    stubEnv({
+      NODE_ENV: "production",
+      BETTER_AUTH_SECRET: "prod-secret-0123456789abcdef0123456789",
+      APP_URL: "https://coaching.example.com",
+    });
+    await expect(import("@/lib/env")).rejects.toThrow(
+      /RESEND_API_KEY|TURNSTILE_SECRET_KEY/,
+    );
+  });
+
+  it("accepts a fully provisioned production environment", async () => {
+    stubEnv({
+      NODE_ENV: "production",
+      BETTER_AUTH_SECRET: "prod-secret-0123456789abcdef0123456789",
+      APP_URL: "https://coaching.example.com",
+      RESEND_API_KEY: "re_prod_key",
+      TURNSTILE_SECRET_KEY: "prod-turnstile-secret",
+    });
+    const { env } = await import("@/lib/env");
+    expect(env.APP_URL).toBe("https://coaching.example.com");
+  });
 });

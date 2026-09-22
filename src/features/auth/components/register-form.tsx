@@ -4,9 +4,16 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/features/auth/client";
 import { registerSchema } from "@/features/auth/schemas";
-import { Field, FormError, TextInput } from "./form-fields";
+import { captchaHeaders, Field, FormError, TextInput } from "./form-fields";
 
-export function RegisterForm({ googleEnabled }: { googleEnabled: boolean }) {
+export function RegisterForm({
+  googleEnabled,
+  captchaToken,
+}: {
+  googleEnabled: boolean;
+  /** Turnstile token once the widget is provisioned; omitted until then. */
+  captchaToken?: string;
+}) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,8 +35,9 @@ export function RegisterForm({ googleEnabled }: { googleEnabled: boolean }) {
     }
     setPending(true);
     await authClient.signUp.email(
-      { ...parsed.data, callbackURL: "/verify-email" },
+      { ...parsed.data, callbackURL: "/verify-email?verified=1" },
       {
+        ...captchaHeaders(captchaToken),
         onSuccess: () => {
           router.push("/verify-email");
         },

@@ -7,6 +7,11 @@ import { env } from "@/lib/env";
  * no `TURNSTILE_SECRET_KEY`, the check passes outside production so local
  * and test journeys work, and fails closed in production so the app can
  * never be deployed open by accident. A missing/empty token always fails.
+ *
+ * Belt and braces: `src/lib/env.ts` additionally refuses to boot in
+ * production without `TURNSTILE_SECRET_KEY`, and the Better Auth `captcha`
+ * plugin (the real enforcement point) installs exactly when the secret is
+ * present — see the provisioning checklist in `src/lib/auth.ts`.
  */
 export async function verifyTurnstile(
   token: string | null | undefined,

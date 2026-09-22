@@ -28,7 +28,9 @@ export class NotFoundError extends Error {
 export interface SessionUser {
   id: string;
   email: string;
-  role: string;
+  role: "OWNER" | "ADMIN";
+  /** Needed by M3: unverified users can log in but cannot submit listings. */
+  emailVerified: boolean;
 }
 
 export type SessionResolver = () => Promise<{ user: SessionUser } | null>;
@@ -47,11 +49,14 @@ async function defaultSessionResolver(): Promise<{
     return null;
   }
   const role = (session.user as unknown as { role?: unknown }).role ?? "OWNER";
+  // Least-privilege: an unexpected shape can never escalate to ADMIN.
+  const safeRole = role === "ADMIN" ? "ADMIN" : "OWNER";
   return {
     user: {
       id: session.user.id,
       email: session.user.email,
-      role: typeof role === "string" ? role : "OWNER",
+      role: safeRole,
+      emailVerified: session.user.emailVerified,
     },
   };
 }

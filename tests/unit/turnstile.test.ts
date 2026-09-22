@@ -14,11 +14,14 @@ describe("turnstile check (src/lib/turnstile.ts)", () => {
     await expect(verifyTurnstile("any-token")).resolves.toBe(true);
   });
 
-  it("fails closed in production when no secret is configured", async () => {
+  it("refuses to boot in production when no secret is configured", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DATABASE_URL", "postgresql://user:password@localhost:5433/x");
     vi.stubEnv("APP_URL", "http://localhost:3000");
-    const { verifyTurnstile } = await import("@/lib/turnstile");
-    await expect(verifyTurnstile("any-token")).resolves.toBe(false);
+    // Production boot requires TURNSTILE_SECRET_KEY (src/lib/env.ts), so the
+    // stub's fail-closed branch is unreachable — nothing can deploy open.
+    await expect(import("@/lib/turnstile")).rejects.toThrow(
+      /TURNSTILE_SECRET_KEY/,
+    );
   });
 });

@@ -11,33 +11,75 @@ import { z } from "zod";
  * Public (`NEXT_PUBLIC_*`) values get their own validated module when the
  * first one is actually needed (likely R2's image base URL in M4).
  */
-const serverEnvSchema = z.object({
-  NODE_ENV: z
-    .enum(["development", "test", "production"])
-    .default("development"),
-  /** Absolute origin of the app; used for metadata / canonical URLs (M7). */
-  APP_URL: z.url().default("http://localhost:3000"),
-  /** PostgreSQL connection string (consumed by Prisma from M1). */
-  DATABASE_URL: z
-    .url()
-    .refine(
-      (value) =>
-        value.startsWith("postgresql://") || value.startsWith("postgres://"),
-      { message: "must be a PostgreSQL connection string (postgresql://…)" },
-    ),
-  // ── M2 auth / provisioning (all optional) ─────────────────────────────
-  // Dev stubs stand in until accounts are provisioned; each gated feature
-  // fails loud at use-time (not boot-time) when its key is missing.
-  /** Better Auth secret (required in production; dev uses .env value). */
-  BETTER_AUTH_SECRET: z.string().min(16).optional(),
-  /** Resend API key for verification/reset emails (M2 gate). */
-  RESEND_API_KEY: z.string().min(1).optional(),
-  /** Cloudflare Turnstile secret for register/reset checks (M2 gate). */
-  TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
-  /** Google OAuth client id/secret (M2 gate; provider enabled only if both set). */
-  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
-  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
-});
+const serverEnvSchema = z
+  .object({
+    NODE_ENV: z
+      .enum(["development", "test", "production"])
+      .default("development"),
+    /** Absolute origin of the app; used for metadata / canonical URLs (M7). */
+    APP_URL: z.url().default("http://localhost:3000"),
+    /** PostgreSQL connection string (consumed by Prisma from M1). */
+    DATABASE_URL: z
+      .url()
+      .refine(
+        (value) =>
+          value.startsWith("postgresql://") || value.startsWith("postgres://"),
+        { message: "must be a PostgreSQL connection string (postgresql://…)" },
+      ),
+    // ── M2 auth / provisioning (all optional) ─────────────────────────────
+    // Dev stubs stand in until accounts are provisioned; each gated feature
+    // fails loud at use-time (not boot-time) when its key is missing.
+    /** Better Auth secret (optional in dev/test; required in production). */
+    BETTER_AUTH_SECRET: z.string().min(1).optional(),
+    /** Resend API key for verification/reset emails (M2 gate; required in production). */
+    RESEND_API_KEY: z.string().min(1).optional(),
+    /** Cloudflare Turnstile secret (M2 gate; required in production). */
+    TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
+    /** Google OAuth client id/secret (M2 gate; provider enabled only if both set). */
+    GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+    GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  })
+  .superRefine((val, ctx) => {
+    // Production cannot boot on stub posture: without these, the app would
+    // serve auth with weak secrets, localhost links, or no bot/mail checks.
+    if (val.NODE_ENV !== "production") {
+      return;
+    }
+    if (!val.BETTER_AUTH_SECRET || val.BETTER_AUTH_SECRET.length < 32) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["BETTER_AUTH_SECRET"],
+        message: "required in production (min 32 characters)",
+      });
+    }
+    try {
+      const url = new URL(val.APP_URL);
+      const loopback = ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+      if (url.protocol !== "https:" || loopback) {
+        throw new Error("loopback");
+      }
+    } catch {
+      ctx.addIssue({
+        code: "custom",
+        path: ["APP_URL"],
+        message: "must be a public https URL in production",
+      });
+    }
+    if (!val.RESEND_API_KEY) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["RESEND_API_KEY"],
+        message: "required in production (verification/reset mail)",
+      });
+    }
+    if (!val.TURNSTILE_SECRET_KEY) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["TURNSTILE_SECRET_KEY"],
+        message: "required in production (register/reset bot checks)",
+      });
+    }
+  });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 

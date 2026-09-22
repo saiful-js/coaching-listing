@@ -4,9 +4,16 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/features/auth/client";
 import { loginSchema } from "@/features/auth/schemas";
-import { Field, FormError, TextInput } from "./form-fields";
+import { captchaHeaders, Field, FormError, TextInput } from "./form-fields";
 
-export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
+export function LoginForm({
+  googleEnabled,
+  captchaToken,
+}: {
+  googleEnabled: boolean;
+  /** Turnstile token once the widget is provisioned; omitted until then. */
+  captchaToken?: string;
+}) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +34,7 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
     await authClient.signIn.email(
       { ...parsed.data, callbackURL: "/" },
       {
+        ...captchaHeaders(captchaToken),
         onSuccess: () => {
           router.push("/");
           router.refresh();
