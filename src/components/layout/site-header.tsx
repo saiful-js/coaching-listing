@@ -33,6 +33,12 @@ export function SiteHeader() {
           >
             For owners
           </Link>
+          <Link
+            href="/login"
+            className="text-ink-soft transition-colors hover:text-ink"
+          >
+            Log in
+          </Link>
         </nav>
       </div>
     </header>

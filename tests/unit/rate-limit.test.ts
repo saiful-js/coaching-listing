@@ -1,6 +1,7 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
-const DATABASE_URL = "postgresql://coaching:coaching@localhost:5434/coaching_ngj";
+const DATABASE_URL =
+  "postgresql://coaching:coaching@localhost:5434/coaching_ngj";
 
 let consumeRateLimit: (args: {
   key: string;
@@ -28,7 +29,11 @@ describe("DB-backed rate limiter (src/lib/rate-limit.ts)", () => {
   it("allows up to the limit, then denies", async () => {
     const key = uniqueKey("allow");
     for (let i = 0; i < 3; i++) {
-      const result = await consumeRateLimit({ key, limit: 3, windowMs: 60_000 });
+      const result = await consumeRateLimit({
+        key,
+        limit: 3,
+        windowMs: 60_000,
+      });
       expect(result.allowed).toBe(true);
     }
     const denied = await consumeRateLimit({ key, limit: 3, windowMs: 60_000 });

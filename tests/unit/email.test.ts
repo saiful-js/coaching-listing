@@ -10,8 +10,9 @@ describe("stub email outbox (src/lib/email.ts)", () => {
     vi.stubEnv("NODE_ENV", "test");
     vi.stubEnv("DATABASE_URL", "postgresql://user:password@localhost:5433/x");
     vi.stubEnv("APP_URL", "http://localhost:3000");
-    const { sendEmail, emailOutbox, clearEmailOutbox } =
-      await import("@/lib/email");
+    const { sendEmail, emailOutbox, clearEmailOutbox } = await import(
+      "@/lib/email"
+    );
     clearEmailOutbox();
     await sendEmail({
       to: "owner@example.com",
@@ -26,8 +27,9 @@ describe("stub email outbox (src/lib/email.ts)", () => {
     vi.stubEnv("NODE_ENV", "test");
     vi.stubEnv("DATABASE_URL", "postgresql://user:password@localhost:5433/x");
     vi.stubEnv("APP_URL", "http://localhost:3000");
-    const { sendEmail, emailOutbox, clearEmailOutbox } =
-      await import("@/lib/email");
+    const { sendEmail, emailOutbox, clearEmailOutbox } = await import(
+      "@/lib/email"
+    );
     clearEmailOutbox();
     await sendEmail({ to: "a@example.com", subject: "s", text: "t" });
     clearEmailOutbox();

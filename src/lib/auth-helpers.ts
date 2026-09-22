@@ -46,8 +46,7 @@ async function defaultSessionResolver(): Promise<{
   if (!session) {
     return null;
   }
-  const role =
-    (session.user as unknown as { role?: unknown }).role ?? "OWNER";
+  const role = (session.user as unknown as { role?: unknown }).role ?? "OWNER";
   return {
     user: {
       id: session.user.id,

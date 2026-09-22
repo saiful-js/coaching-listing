@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-const DATABASE_URL = "postgresql://coaching:coaching@localhost:5434/coaching_ngj";
+const DATABASE_URL =
+  "postgresql://coaching:coaching@localhost:5434/coaching_ngj";
 
 type Resolver = () => Promise<{
   user: { id: string; email: string; role: string };
@@ -115,9 +116,9 @@ describe("server guards (src/lib/auth-helpers.ts)", () => {
         requireOwnerOf(coaching.id, async () => admin()),
       ).resolves.toMatchObject({ id: coaching.id });
       // Anonymous → 401.
-      await expect(requireOwnerOf(coaching.id, anonymous)).rejects.toBeInstanceOf(
-        UnauthorizedError,
-      );
+      await expect(
+        requireOwnerOf(coaching.id, anonymous),
+      ).rejects.toBeInstanceOf(UnauthorizedError);
     } finally {
       await prisma.coaching.deleteMany({
         where: { ownerId: { in: ["guard-test-owner", "guard-test-other"] } },
