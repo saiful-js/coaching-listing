@@ -1,5 +1,6 @@
 import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { betterAuth } from "better-auth";
+import { captcha } from "better-auth/plugins";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { env } from "@/lib/env";
@@ -28,6 +29,31 @@ export const auth = betterAuth({
     provider: "postgresql",
   }),
   secret: env.BETTER_AUTH_SECRET,
+  // Persisted (database) because serverless instances do not share memory.
+  // PRD FR-1 AC: 6+ wrong passwords in a short window → rate-limited.
+  rateLimit: {
+    storage: "database",
+    window: 60,
+    max: 100,
+    customRules: {
+      "/sign-in/email": { window: 600, max: 5 },
+      "/sign-up/email": { window: 600, max: 10 },
+      "/request-password-reset": { window: 600, max: 5 },
+    },
+  },
+  // Turnstile only when provisioned; without a secret the plugin stays out
+  // and the dev-stub behavior in src/lib/turnstile.ts applies (open outside
+  // production, closed in production).
+  plugins: [
+    ...(env.TURNSTILE_SECRET_KEY
+      ? [
+          captcha({
+            provider: "cloudflare-turnstile",
+            secretKey: env.TURNSTILE_SECRET_KEY,
+          }),
+        ]
+      : []),
+  ],
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
