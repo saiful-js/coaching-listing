@@ -207,10 +207,17 @@ export async function submitForReview(
   coachingId: string,
 ): Promise<Coaching> {
   const coaching = await ownedCoachingOr404(actor, coachingId);
+  // Submit is owner-side: admins moderate via approve/reject, except for
+  // their own drafts (an admin bypasses the ownership guard above, so
+  // compare explicitly instead of trusting the guard).
+  const isOwner = coaching.ownerId === actor.id;
+  if (!isOwner) {
+    throw new ForbiddenError();
+  }
   if (!actor.emailVerified) {
     throw new Error("Verify your email before submitting a listing.");
   }
-  if (!canSubmit(actor.role, true, coaching.status)) {
+  if (!canSubmit(actor.role, isOwner, coaching.status)) {
     throw new Error(`Cannot submit a listing in ${coaching.status} status.`);
   }
   return transitionTo(actor, coachingId, "PENDING");

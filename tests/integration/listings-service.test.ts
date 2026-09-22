@@ -159,6 +159,21 @@ describe("M3 listing service", () => {
     ).rejects.toThrow(/limit/i);
   });
 
+  it("forbids admins from submitting other owners' listings", async () => {
+    const uid = `m3-owner-nosubmit-${runId}`;
+    const admin = `m3-admin-nosubmit-${runId}`;
+    await makeUser(uid, "OWNER");
+    await makeUser(admin, "ADMIN");
+    const { ForbiddenError } = await import("@/lib/auth-helpers");
+    const created = await service.createCoaching(
+      ownerActor(uid),
+      validInput(`No Submit ${runId}`),
+    );
+    await expect(
+      service.submitForReview(adminActor(admin), created.id),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
   it("returns 404 (not 403) for cross-owner ids", async () => {
     const uidA = `m3-owner-a-${runId}`;
     const uidB = `m3-owner-b-${runId}`;
