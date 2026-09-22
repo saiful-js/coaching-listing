@@ -31,7 +31,10 @@ export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   // Persisted (database) because serverless instances do not share memory.
   // PRD FR-1 AC: 6+ wrong passwords in a short window → rate-limited.
+  // `enabled` is explicit because the default follows NODE_ENV (off outside
+  // production) — protection must be provable in tests, not just in prod.
   rateLimit: {
+    enabled: true,
     storage: "database",
     window: 60,
     max: 100,
