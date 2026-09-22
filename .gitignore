@@ -42,3 +42,9 @@ next-env.d.ts
 
 # prisma generated client (Prisma 7 `prisma-client` generator)
 /src/generated
+
+# git worktrees (isolated workspaces, never commit contents)
+/.worktrees/
+
+# superpowers execution workspaces (ledger, briefs, review packages)
+.superpowers/
