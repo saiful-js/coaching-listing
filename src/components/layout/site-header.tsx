@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SiteNav } from "@/components/layout/site-nav";
 import { site } from "@/config/site";
 
 export function SiteHeader() {
@@ -20,32 +21,7 @@ export function SiteHeader() {
             {site.shortName}
           </span>
         </Link>
-        <nav aria-label="Main" className="flex items-center gap-6 text-sm">
-          <Link
-            href="/coachings"
-            className="text-ink-soft transition-colors hover:text-ink"
-          >
-            Browse
-          </Link>
-          <Link
-            href="/#owners"
-            className="text-ink-soft transition-colors hover:text-ink"
-          >
-            For owners
-          </Link>
-          <Link
-            href="/login"
-            className="text-ink-soft transition-colors hover:text-ink"
-          >
-            Log in
-          </Link>
-          <Link
-            href="/dashboard"
-            className="text-ink-soft transition-colors hover:text-ink"
-          >
-            Dashboard
-          </Link>
-        </nav>
+        <SiteNav />
       </div>
     </header>
   );
