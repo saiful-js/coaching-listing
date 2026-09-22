@@ -116,8 +116,14 @@ export async function latestPublished(limit: number) {
   });
 }
 
-export async function areasWithCounts() {
-  const areas = await prisma.area.findMany({
+export async function allCategories() {
+  return prisma.category.findMany({
+    orderBy: { sortOrder: "asc" },
+    select: { slug: true, nameEn: true, nameBn: true },
+  });
+}
+
+export async function areasWithCounts() {  const areas = await prisma.area.findMany({
     orderBy: { sortOrder: "asc" },
     select: { slug: true, nameEn: true, nameBn: true },
   });

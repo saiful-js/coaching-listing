@@ -34,6 +34,7 @@ export {
 } from "./service";
 export {
   PAGE_SIZE,
+  allCategories,
   areasWithCounts,
   getAreaWithListings,
   getPublishedBySlug,
