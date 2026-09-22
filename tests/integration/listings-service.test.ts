@@ -54,6 +54,19 @@ async function makeUser(id: string, role: "OWNER" | "ADMIN") {
   ownerIds.push(id);
 }
 
+/** Attach a cover row directly (no Cloudinary involved). */
+async function addCover(coachingId: string) {
+  await prisma.coachingImage.create({
+    data: {
+      coachingId,
+      key: `test/${coachingId}/cover`,
+      width: 1600,
+      height: 900,
+      isCover: true,
+    },
+  });
+}
+
 describe("M3 listing service", () => {
   beforeAll(async () => {
     vi.stubEnv("NODE_ENV", "test");
@@ -120,6 +133,21 @@ describe("M3 listing service", () => {
     expect(updated.slug).toBe(created.slug);
   });
 
+  it("requires a cover photo before submitting", async () => {
+    const uid = `m3-owner-cover-${runId}`;
+    await makeUser(uid, "OWNER");
+    const created = await service.createCoaching(
+      ownerActor(uid),
+      validInput(`Coverless ${runId}`),
+    );
+    await expect(
+      service.submitForReview(ownerActor(uid), created.id),
+    ).rejects.toThrow(/cover/i);
+    await addCover(created.id);
+    const pending = await service.submitForReview(ownerActor(uid), created.id);
+    expect(pending.status).toBe("PENDING");
+  });
+
   it("blocks unverified owners from submitting, allows verified", async () => {
     const uid = `m3-owner-verify-${runId}`;
     await makeUser(uid, "OWNER");
@@ -130,6 +158,7 @@ describe("M3 listing service", () => {
     await expect(
       service.submitForReview(ownerActor(uid, false), created.id),
     ).rejects.toThrow(/verif/i);
+    await addCover(created.id);
     const pending = await service.submitForReview(
       ownerActor(uid, true),
       created.id,
@@ -210,6 +239,7 @@ describe("M3 listing service", () => {
       service.approveListing(adminActor(admin), created.id),
     ).rejects.toThrow(/cannot move/i);
 
+    await addCover(created.id);
     await service.submitForReview(ownerActor(uid), created.id);
     const published = await service.approveListing(
       adminActor(admin),
@@ -241,6 +271,7 @@ describe("M3 listing service", () => {
       ownerActor(uid),
       validInput(`Reject ${runId}`),
     );
+    await addCover(created.id);
     await service.submitForReview(ownerActor(uid), created.id);
     await expect(
       service.rejectListing(adminActor(admin), created.id, ""),

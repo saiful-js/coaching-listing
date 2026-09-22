@@ -220,6 +220,13 @@ export async function submitForReview(
   if (!canSubmit(actor.role, isOwner, coaching.status)) {
     throw new Error(`Cannot submit a listing in ${coaching.status} status.`);
   }
+  const cover = await prisma.coachingImage.findFirst({
+    where: { coachingId, isCover: true },
+    select: { id: true },
+  });
+  if (!cover) {
+    throw new Error("Add a cover photo before submitting for review.");
+  }
   return transitionTo(actor, coachingId, "PENDING");
 }
 
