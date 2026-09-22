@@ -136,9 +136,12 @@ export default async function AdminListingsPage({
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="grid gap-1">
-                    <p className="font-display text-lg font-medium">
+                    <Link
+                      href={`/admin/listings/${listing.id}`}
+                      className="font-display text-lg font-medium hover:underline hover:underline-offset-4"
+                    >
                       <span className="font-content">{listing.name}</span>
-                    </p>
+                    </Link>
                     <p className="font-mono text-xs text-ink-faint">
                       {listing.owner.email} · {listing.area.nameEn} · updated{" "}
                       {listing.updatedAt.toISOString().slice(0, 10)}
