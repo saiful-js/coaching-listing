@@ -279,7 +279,7 @@ Images are served from a public bucket on a custom domain (e.g. `img.example.com
 - Better Auth (email/password, Google, email verification) with Prisma adapter
 - PostgreSQL + Prisma (no TypeORM)
 - Cloudflare R2 via `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`
-- Resend (transactional email), Cloudflare Turnstile
+- Gmail SMTP via nodemailer (transactional email, ADR 0003), Cloudflare Turnstile
 - `nuqs` for URL query state, `sonner` for toasts, `next-intl` for i18n
 - Vitest + Playwright, ESLint + Prettier, GitHub Actions
 - Sentry

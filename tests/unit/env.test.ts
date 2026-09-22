@@ -45,7 +45,9 @@ describe("env validation (src/lib/env.ts)", () => {
     stubEnv();
     const { env } = await import("@/lib/env");
     expect(env.BETTER_AUTH_SECRET).toBeUndefined();
-    expect(env.RESEND_API_KEY).toBeUndefined();
+    expect(env.SMTP_USER).toBeUndefined();
+    expect(env.SMTP_HOST).toBe("smtp.gmail.com");
+    expect(env.SMTP_PORT).toBe(587);
     expect(env.TURNSTILE_SECRET_KEY).toBeUndefined();
     expect(env.GOOGLE_CLIENT_ID).toBeUndefined();
     expect(env.GOOGLE_CLIENT_SECRET).toBeUndefined();
@@ -54,7 +56,8 @@ describe("env validation (src/lib/env.ts)", () => {
   it("accepts a fully provisioned M2 environment", async () => {
     stubEnv({
       BETTER_AUTH_SECRET: "test-secret-with-enough-length",
-      RESEND_API_KEY: "re_test_key",
+      SMTP_USER: "app@example.com",
+      SMTP_PASS: "app-password",
       TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA",
       GOOGLE_CLIENT_ID: "google-client-id",
       GOOGLE_CLIENT_SECRET: "google-client-secret",
@@ -84,14 +87,14 @@ describe("env validation (src/lib/env.ts)", () => {
     await expect(import("@/lib/env")).rejects.toThrow(/APP_URL/);
   });
 
-  it("requires Resend and Turnstile keys in production", async () => {
+  it("requires SMTP and Turnstile keys in production", async () => {
     stubEnv({
       NODE_ENV: "production",
       BETTER_AUTH_SECRET: "prod-secret-0123456789abcdef0123456789",
       APP_URL: "https://coaching.example.com",
     });
     await expect(import("@/lib/env")).rejects.toThrow(
-      /RESEND_API_KEY|TURNSTILE_SECRET_KEY/,
+      /SMTP_USER|TURNSTILE_SECRET_KEY/,
     );
   });
 
@@ -100,7 +103,8 @@ describe("env validation (src/lib/env.ts)", () => {
       NODE_ENV: "production",
       BETTER_AUTH_SECRET: "prod-secret-0123456789abcdef0123456789",
       APP_URL: "https://coaching.example.com",
-      RESEND_API_KEY: "re_prod_key",
+      SMTP_USER: "app@example.com",
+      SMTP_PASS: "app-password",
       TURNSTILE_SECRET_KEY: "prod-turnstile-secret",
     });
     const { env } = await import("@/lib/env");

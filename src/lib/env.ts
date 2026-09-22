@@ -31,8 +31,18 @@ const serverEnvSchema = z
     // fails loud at use-time (not boot-time) when its key is missing.
     /** Better Auth secret (optional in dev/test; required in production). */
     BETTER_AUTH_SECRET: z.string().min(1).optional(),
-    /** Resend API key for verification/reset emails (M2 gate; required in production). */
-    RESEND_API_KEY: z.string().min(1).optional(),
+    // ── SMTP mail (Gmail; ADR 0003) ─────────────────────────────────────
+    // The dev/test outbox stub applies while SMTP_USER/SMTP_PASS are unset.
+    /** SMTP host (Gmail default). */
+    SMTP_HOST: z.string().min(1).default("smtp.gmail.com"),
+    /** SMTP port (587 STARTTLS default; 465 for implicit TLS). */
+    SMTP_PORT: z.coerce.number().int().positive().default(587),
+    /** Gmail address used as the SMTP username. */
+    SMTP_USER: z.email().optional(),
+    /** Google App Password (not the account password). */
+    SMTP_PASS: z.string().min(1).optional(),
+    /** From header; defaults to the SMTP user. */
+    SMTP_FROM: z.string().min(1).optional(),
     /** Cloudflare Turnstile secret (M2 gate; required in production). */
     TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
     /** Google OAuth client id/secret (M2 gate; provider enabled only if both set). */
@@ -65,11 +75,12 @@ const serverEnvSchema = z
         message: "must be a public https URL in production",
       });
     }
-    if (!val.RESEND_API_KEY) {
+    if (!val.SMTP_USER || !val.SMTP_PASS) {
       ctx.addIssue({
         code: "custom",
-        path: ["RESEND_API_KEY"],
-        message: "required in production (verification/reset mail)",
+        path: ["SMTP_USER"],
+        message:
+          "SMTP_USER and SMTP_PASS are required in production (verification/reset mail)",
       });
     }
     if (!val.TURNSTILE_SECRET_KEY) {

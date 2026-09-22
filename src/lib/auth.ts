@@ -9,7 +9,7 @@ import { env } from "@/lib/env";
  * Better Auth configuration (M2, PRD FR-1).
  *
  * - Email/password with verification mail + password reset, both delivered
- *   through `src/lib/email.ts` (dev outbox until Resend is provisioned).
+ *   through `src/lib/email.ts` (dev outbox until SMTP is configured).
  * - `requireEmailVerification: false`: per PRD FR-1, unverified users can
  *   log in but cannot submit a listing for review — that gate is enforced
  *   in M3's listing service, not here.
