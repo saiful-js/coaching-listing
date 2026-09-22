@@ -99,14 +99,20 @@ export default function Home() {
               Own a coaching centre in Narayanganj?
             </h2>
             <p className="mt-5 leading-7 text-ink-soft">
-              Get a free listing with your address, photos, and contact details.
-              Sign up, publish in minutes, and reach students already searching
-              in your area. Every listing is reviewed before it goes live — that
-              is what keeps the directory worth trusting.
+              Get a free listing with your address, categories, and contact
+              details. Create an account, add your coaching in minutes, and
+              reach students already searching in your area. Every listing is
+              reviewed before it goes live — that is what keeps the directory
+              worth trusting.
             </p>
-            <p className="mt-6 font-mono text-xs text-ink-faint">
-              Owner sign-up opens with the first release.
-            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link href="/register" className="btn btn-primary">
+                List your coaching
+              </Link>
+              <Link href="/dashboard" className="btn btn-secondary">
+                Owner dashboard
+              </Link>
+            </div>
           </div>
         </div>
       </section>
