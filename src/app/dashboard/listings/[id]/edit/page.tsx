@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ListingForm } from "@/features/listings/components/listing-form";
 import { ImageGallery } from "@/features/uploads/components/image-gallery";
@@ -33,6 +34,7 @@ export default async function EditListingPage({
       id: true,
       ownerId: true,
       name: true,
+      status: true,
       areaId: true,
       addressLine: true,
       description: true,
@@ -67,34 +69,48 @@ export default async function EditListingPage({
     }),
   ]);
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6">
-      <p className="eyebrow">Owner dashboard</p>
-      <h1 className="mt-2 font-display text-3xl font-medium tracking-tight">
-        Edit listing
-      </h1>
-      <div className="mt-6">
-        <ListingForm
-          mode="edit"
-          listingId={listing.id}
-          initial={{
-            name: listing.name,
-            areaId: listing.areaId,
-            addressLine: listing.addressLine,
-            description: listing.description,
-            categoryIds: listing.categories.map((c) => c.id),
-            phone: listing.phone,
-            whatsapp: listing.whatsapp ?? undefined,
-            email: listing.email ?? undefined,
-            facebookUrl: listing.facebookUrl ?? undefined,
-          }}
-          areas={areas}
-          categories={categories}
-        />
+    <div className="grid gap-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <h1 className="font-display text-3xl font-medium tracking-tight">
+          Edit listing
+        </h1>
+        {listing.status !== "ARCHIVED" && (
+          <Link
+            href={`/dashboard/listings/${listing.id}/preview`}
+            className="btn btn-secondary h-9 px-4 text-[13px]"
+          >
+            Preview
+          </Link>
+        )}
       </div>
-      <div className="mt-10 grid gap-4 border-t border-line pt-8">
-        <h2 className="font-display text-xl font-medium tracking-tight">
-          Photos
-        </h2>
+      <ListingForm
+        mode="edit"
+        listingId={listing.id}
+        status={listing.status}
+        initial={{
+          name: listing.name,
+          areaId: listing.areaId,
+          addressLine: listing.addressLine,
+          description: listing.description,
+          categoryIds: listing.categories.map((c) => c.id),
+          phone: listing.phone,
+          whatsapp: listing.whatsapp ?? undefined,
+          email: listing.email ?? undefined,
+          facebookUrl: listing.facebookUrl ?? undefined,
+        }}
+        areas={areas}
+        categories={categories}
+      />
+      <div className="mt-4 grid gap-4 border-t border-line pt-8">
+        <div>
+          <h2 className="font-display text-xl font-medium tracking-tight">
+            Photos
+          </h2>
+          <p className="mt-1 text-sm text-ink-soft">
+            The cover photo is what people see in search results. You need at
+            least one photo before submitting for review.
+          </p>
+        </div>
         <ImageUploader
           coachingId={listing.id}
           imageCount={listing.images.length}

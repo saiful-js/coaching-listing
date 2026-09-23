@@ -4,6 +4,11 @@ import {
   type CloudinaryUploader,
   getCloudinaryClient,
 } from "@/features/uploads/cloudinary-client";
+import {
+  ALLOWED_IMAGE_TYPES,
+  MAX_IMAGE_BYTES,
+  MAX_IMAGES_PER_LISTING,
+} from "@/features/uploads/limits";
 import type { CoachingImage } from "@/generated/prisma/client";
 import { NotFoundError, requireOwnerOf } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
@@ -15,12 +20,12 @@ export interface IncomingFile {
   size: number;
 }
 
-/** 1 cover + 5 gallery (PRD A7). */
-export const MAX_IMAGES_PER_LISTING = 6;
-/** 5 MB before upload (PRD A7); Cloudinary transforms handle the rest. */
-export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+// 1 cover + 5 gallery (PRD A7) and the 5 MB pre-upload cap. Defined in
+// `./limits` (client-safe) and re-exported so existing importers keep
+// working: `import { MAX_IMAGES_PER_LISTING } from ".../uploads/service"`.
+export { MAX_IMAGE_BYTES, MAX_IMAGES_PER_LISTING };
 
-const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const ALLOWED_TYPES = new Set<string>(ALLOWED_IMAGE_TYPES);
 
 function assertValidFile(file: IncomingFile) {
   if (!ALLOWED_TYPES.has(file.contentType)) {

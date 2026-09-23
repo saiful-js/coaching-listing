@@ -17,12 +17,15 @@ import {
   updateCategory,
 } from "@/features/admin/service";
 import {
+  type Actor,
   approveListing,
   archiveListing,
   rejectListing,
   resolveActor,
 } from "@/features/listings/service";
 import { auth } from "@/lib/auth";
+import { sendEmail } from "@/lib/email";
+import { env } from "@/lib/env";
 import { revalidatePublicListings } from "@/lib/revalidate";
 
 export interface AdminActionResult {
@@ -35,6 +38,34 @@ const idSchema = z.string().min(1).max(100);
 const reasonSchema = z.string().trim().min(1).max(2000);
 const roleSchema = z.enum(["OWNER", "ADMIN"]);
 const expiresInDaysSchema = z.number().int().min(1).max(3650).nullish();
+
+/**
+ * Tell the owner a decision was made. Best-effort: the status change is
+ * already committed, so a mail failure must never fail the action — log and
+ * carry on (the owner still sees the new status on their dashboard).
+ */
+async function notifyOwner(
+  actor: Actor,
+  coaching: { ownerId: string; name: string; slug: string },
+  kind: "approved" | "rejected",
+  reason?: string,
+): Promise<void> {
+  try {
+    const owner = await getSupportTarget(actor, coaching.ownerId);
+    const isApproved = kind === "approved";
+    await sendEmail({
+      to: owner.email,
+      subject: isApproved
+        ? `Your listing "${coaching.name}" is live`
+        : `Your listing "${coaching.name}" needs changes`,
+      text: isApproved
+        ? `Good news — "${coaching.name}" has been reviewed and published.\n\nSee it live: ${env.APP_URL}/coachings/${coaching.slug}\n\nYou can edit it any time from your dashboard: ${env.APP_URL}/dashboard`
+        : `"${coaching.name}" wasn't published yet.\n\nReviewer note:\n${reason ?? "(no reason given)"}\n\nFix the issue and submit again: ${env.APP_URL}/dashboard`,
+    });
+  } catch (error) {
+    console.error("Owner notification failed", error);
+  }
+}
 
 function toError(error: unknown): AdminActionResult {
   if (error instanceof ZodError) {
@@ -64,6 +95,7 @@ export async function approveListingAction(
     // Approval is what makes a listing public: update the home page now
     // instead of waiting for its 5-minute ISR window.
     revalidatePublicListings();
+    await notifyOwner(actor, coaching, "approved");
     return { ok: true, id: coaching.id };
   } catch (error) {
     return toError(error);
@@ -80,6 +112,7 @@ export async function rejectListingAction(
     const actor = await resolveActor();
     const coaching = await rejectListing(actor, parsedId, parsedReason);
     revalidatePath("/admin/listings");
+    await notifyOwner(actor, coaching, "rejected", parsedReason);
     return { ok: true, id: coaching.id };
   } catch (error) {
     return toError(error);

@@ -4,6 +4,11 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { FormError } from "@/features/auth";
 import { uploadImageAction } from "@/features/uploads/actions";
+import {
+  ALLOWED_IMAGE_ACCEPT,
+  MAX_IMAGE_MB,
+  MAX_IMAGES_PER_LISTING,
+} from "@/features/uploads/limits";
 
 export function ImageUploader({
   coachingId,
@@ -17,7 +22,7 @@ export function ImageUploader({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const remaining = 6 - imageCount;
+  const remaining = MAX_IMAGES_PER_LISTING - imageCount;
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,7 +30,9 @@ export function ImageUploader({
     const form = new FormData(event.currentTarget);
     const file = form.get("file");
     if (!(file instanceof File) || file.size === 0) {
-      setError("Choose a JPEG, PNG, or WebP file first (max 5 MB).");
+      setError(
+        `Choose a JPEG, PNG, or WebP file first (max ${MAX_IMAGE_MB} MB).`,
+      );
       return;
     }
     setPending(true);
@@ -43,7 +50,8 @@ export function ImageUploader({
   if (remaining <= 0) {
     return (
       <p className="text-sm text-ink-soft">
-        Image limit reached (6 per listing). Delete one to upload another.
+        Image limit reached ({MAX_IMAGES_PER_LISTING} per listing). Delete one
+        to upload another.
       </p>
     );
   }
@@ -54,7 +62,8 @@ export function ImageUploader({
         htmlFor={`upload-${coachingId}`}
         className="text-sm font-medium text-ink"
       >
-        Add a photo ({remaining} of 6 left · JPEG/PNG/WebP · max 5 MB)
+        Add a photo ({remaining} of {MAX_IMAGES_PER_LISTING} left ·
+        JPEG/PNG/WebP · max {MAX_IMAGE_MB} MB)
       </label>
       <div className="flex flex-wrap items-center gap-3">
         <input
@@ -62,7 +71,7 @@ export function ImageUploader({
           id={`upload-${coachingId}`}
           name="file"
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept={ALLOWED_IMAGE_ACCEPT}
           disabled={pending}
           className="text-sm text-ink-soft file:mr-3 file:h-9 file:rounded-sm file:border file:border-line-strong file:bg-paper-raised file:px-4 file:text-[13px] file:text-ink"
         />

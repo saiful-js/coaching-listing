@@ -6,10 +6,13 @@ const inputClassName =
 export function Field({
   id,
   label,
+  error,
   children,
 }: {
   id: string;
   label: string;
+  /** Per-field message shown directly under the control. */
+  error?: string;
   children: ReactNode;
 }) {
   return (
@@ -18,6 +21,11 @@ export function Field({
         {label}
       </label>
       {children}
+      {error && (
+        <p role="alert" className="text-sm text-clay">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

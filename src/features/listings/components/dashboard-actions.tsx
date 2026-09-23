@@ -32,6 +32,9 @@ export function DashboardActions({
       setPending(null);
       return;
     }
+    // Clear the busy state before refreshing so the button never stays stuck
+    // on success.
+    setPending(null);
     router.refresh();
   }
 
