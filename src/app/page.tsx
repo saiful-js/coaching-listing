@@ -35,26 +35,24 @@ export default async function Home() {
             from Sadar to Sonargaon. Free to browse, with phone and WhatsApp on
             every listing.
           </p>
-          <form
-            method="get"
-            action="/coachings"
-            className="mt-10 flex max-w-xl gap-2"
-            role="search"
-          >
-            <label htmlFor="home-q" className="sr-only">
-              Search coaching centres
-            </label>
-            <input
-              id="home-q"
-              name="q"
-              type="search"
-              placeholder="Try a name, road, or “HSC”…"
-              className="h-12 w-full rounded-sm border border-line-strong bg-paper-raised px-4 text-sm text-ink placeholder:text-ink-faint"
-            />
-            <button type="submit" className="btn btn-primary shrink-0">
-              Search
-            </button>
-          </form>
+          {/* <search> gives the search landmark without role="search" (a11y). */}
+          <search className="mt-10 max-w-xl">
+            <form method="get" action="/coachings" className="flex gap-2">
+              <label htmlFor="home-q" className="sr-only">
+                Search coaching centres
+              </label>
+              <input
+                id="home-q"
+                name="q"
+                type="search"
+                placeholder="Try a name, road, or “HSC”…"
+                className="h-12 w-full rounded-sm border border-line-strong bg-paper-raised px-4 text-sm text-ink placeholder:text-ink-faint"
+              />
+              <button type="submit" className="btn btn-primary shrink-0">
+                Search
+              </button>
+            </form>
+          </search>
         </div>
       </section>
 

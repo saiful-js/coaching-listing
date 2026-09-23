@@ -6,9 +6,7 @@ const nextConfig: NextConfig = {
   experimental: { serverActions: { bodySizeLimit: "6mb" } },
   images: {
     // Listing images load only from our Cloudinary cloud (ADR 0004).
-    remotePatterns: [
-      { protocol: "https", hostname: "res.cloudinary.com" },
-    ],
+    remotePatterns: [{ protocol: "https", hostname: "res.cloudinary.com" }],
   },
 };
 

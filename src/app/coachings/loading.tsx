@@ -1,3 +1,6 @@
+/** Stable keys for the static skeleton cards (no array-index keys). */
+const SKELETON_IDS = ["s1", "s2", "s3", "s4", "s5", "s6"];
+
 export default function CoachingsLoading() {
   return (
     <div
@@ -10,9 +13,9 @@ export default function CoachingsLoading() {
         All coaching centres
       </h1>
       <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }, (_, i) => (
+        {SKELETON_IDS.map((id) => (
           <li
-            key={i}
+            key={id}
             className="overflow-hidden rounded-sm border border-line bg-paper-raised"
           >
             <div className="aspect-[16/10] w-full animate-pulse bg-forest-mist" />
