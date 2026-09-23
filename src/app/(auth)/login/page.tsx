@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LoginForm } from "@/features/auth";
+import { LoginForm, ResendVerificationForm } from "@/features/auth";
 import { auth } from "@/lib/auth";
 import { env } from "@/lib/env";
 
@@ -27,6 +27,14 @@ export default async function LoginPage() {
       <div className="mt-6">
         <LoginForm googleEnabled={googleEnabled} />
       </div>
+      <details className="mt-6 rounded-sm border border-line bg-paper-raised p-4">
+        <summary className="cursor-pointer text-sm font-medium text-ink">
+          Need a new verification link?
+        </summary>
+        <div className="mt-4">
+          <ResendVerificationForm />
+        </div>
+      </details>
       <p className="mt-6 text-sm text-ink-soft">
         No account yet?{" "}
         <Link href="/register" className="underline underline-offset-4">

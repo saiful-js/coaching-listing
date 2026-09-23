@@ -68,3 +68,12 @@ export function canArchive(
 export function canModerate(role: Role): boolean {
   return role === "ADMIN";
 }
+
+/**
+ * Permanent deletion (irreversible: cascades images + audit rows). The owner
+ * may delete their own listing in any status; an admin may delete any.
+ * Ownership itself is enforced separately by the service (404-not-403).
+ */
+export function canDelete(role: Role, isOwner: boolean): boolean {
+  return role === "ADMIN" || isOwner;
+}

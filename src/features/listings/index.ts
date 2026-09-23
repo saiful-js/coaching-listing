@@ -10,12 +10,14 @@ export type { ActionResult } from "./actions";
 export {
   archiveListingAction,
   createListingAction,
+  deleteListingAction,
   submitListingAction,
   updateListingAction,
 } from "./actions";
 export { safeFacebookUrl } from "./facebook";
 export {
   canArchive,
+  canDelete,
   canEdit,
   canModerate,
   canSubmit,
@@ -36,6 +38,7 @@ export {
   approveListing,
   archiveListing,
   createCoaching,
+  deleteCoaching,
   MAX_LISTINGS_PER_OWNER,
   RateLimitedError,
   rejectListing,

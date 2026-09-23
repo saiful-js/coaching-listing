@@ -1,5 +1,6 @@
 import {
   canArchive,
+  canDelete,
   canEdit,
   canModerate,
   canSubmit,
@@ -274,6 +275,43 @@ export async function archiveListing(
     throw new Error(`Cannot archive a listing in ${coaching.status} status.`);
   }
   return transitionTo(actor, coachingId, "ARCHIVED", note);
+}
+
+/**
+ * Injected cloud cleanup for permanent deletion. Keep the listings service
+ * free of uploads internals; the Server Action wires the real destroyer.
+ */
+export type ImageDestroyer = (keys: string[]) => Promise<void>;
+
+/**
+ * Permanently delete a listing (owner of their own, or any admin).
+ * Irreversible: cascades image rows and the audit trail. Uploaded objects
+ * are destroyed best-effort when a destroyer is supplied.
+ */
+export async function deleteCoaching(
+  actor: Actor,
+  coachingId: string,
+  destroyImages?: ImageDestroyer,
+): Promise<void> {
+  const coaching =
+    actor.role === "ADMIN"
+      ? await prisma.coaching.findUnique({ where: { id: coachingId } })
+      : await ownedCoachingOr404(actor, coachingId);
+  if (!coaching) {
+    throw new NotFoundError();
+  }
+  if (!canDelete(actor.role, coaching.ownerId === actor.id)) {
+    throw new ForbiddenError();
+  }
+  const images = await prisma.coachingImage.findMany({
+    where: { coachingId },
+    select: { key: true },
+  });
+  if (destroyImages && images.length > 0) {
+    await destroyImages(images.map((image) => image.key));
+  }
+  // Cascades image rows and audit logs (schema onDelete: Cascade).
+  await prisma.coaching.delete({ where: { id: coachingId } });
 }
 
 /** Adapt an already-resolved actor to the guards' resolver seam. */

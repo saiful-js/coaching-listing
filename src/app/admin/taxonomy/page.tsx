@@ -1,12 +1,10 @@
-import {
-  AreaForm,
-  CategoryForm,
-} from "@/features/admin/components/taxonomy-forms";
+import { AdminPageHeader } from "@/features/admin/components/admin-page-header";
+import { TaxonomyManager } from "@/features/admin/components/taxonomy-manager";
 import { prisma } from "@/lib/db";
 
 export const metadata = {
   title: "Areas & categories",
-  description: "Manage directory taxonomy.",
+  description: "Create, rename, and remove directory taxonomy.",
 };
 
 export default async function AdminTaxonomyPage() {
@@ -14,6 +12,7 @@ export default async function AdminTaxonomyPage() {
     prisma.area.findMany({
       orderBy: { sortOrder: "asc" },
       select: {
+        id: true,
         slug: true,
         nameEn: true,
         nameBn: true,
@@ -23,6 +22,7 @@ export default async function AdminTaxonomyPage() {
     prisma.category.findMany({
       orderBy: { sortOrder: "asc" },
       select: {
+        id: true,
         slug: true,
         nameEn: true,
         nameBn: true,
@@ -32,56 +32,33 @@ export default async function AdminTaxonomyPage() {
   ]);
 
   return (
-    <div className="grid gap-10">
-      <section className="grid gap-4">
-        <h1 className="font-display text-2xl font-medium tracking-tight">
-          Areas
-        </h1>
-        <ul className="grid gap-2">
-          {areas.map((area) => (
-            <li
-              key={area.slug}
-              className="flex items-baseline justify-between gap-4 rounded-sm border border-line bg-paper-raised px-4 py-3"
-            >
-              <span className="text-sm">
-                <span className="font-content">{area.nameEn}</span>{" "}
-                <span className="font-content text-ink-soft">
-                  · {area.nameBn}
-                </span>
-              </span>
-              <span className="font-mono text-xs text-ink-faint">
-                {area._count.coachings} listings
-              </span>
-            </li>
-          ))}
-        </ul>
-        <AreaForm />
-      </section>
-
-      <section className="grid gap-4">
-        <h2 className="font-display text-2xl font-medium tracking-tight">
-          Categories
-        </h2>
-        <ul className="grid gap-2">
-          {categories.map((category) => (
-            <li
-              key={category.slug}
-              className="flex items-baseline justify-between gap-4 rounded-sm border border-line bg-paper-raised px-4 py-3"
-            >
-              <span className="text-sm">
-                <span className="font-content">{category.nameEn}</span>{" "}
-                <span className="font-content text-ink-soft">
-                  · {category.nameBn}
-                </span>
-              </span>
-              <span className="font-mono text-xs text-ink-faint">
-                {category._count.coachings} listings
-              </span>
-            </li>
-          ))}
-        </ul>
-        <CategoryForm />
-      </section>
+    <div className="grid gap-8">
+      <AdminPageHeader
+        title="Areas & categories"
+        description="Rename display names freely — the URL slug stays stable. A row in use by listings must be untagged before it can be deleted."
+      />
+      <TaxonomyManager
+        kind="area"
+        label="Areas"
+        items={areas.map((area) => ({
+          id: area.id,
+          slug: area.slug,
+          nameEn: area.nameEn,
+          nameBn: area.nameBn,
+          count: area._count.coachings,
+        }))}
+      />
+      <TaxonomyManager
+        kind="category"
+        label="Categories"
+        items={categories.map((category) => ({
+          id: category.id,
+          slug: category.slug,
+          nameEn: category.nameEn,
+          nameBn: category.nameBn,
+          count: category._count.coachings,
+        }))}
+      />
     </div>
   );
 }

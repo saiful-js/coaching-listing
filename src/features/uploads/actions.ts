@@ -8,6 +8,7 @@ import {
   setCoverImage,
   uploadCoachingImage,
 } from "@/features/uploads/service";
+import { revalidatePublicListings } from "@/lib/revalidate";
 
 export interface UploadActionResult {
   ok: boolean;
@@ -75,6 +76,8 @@ export async function uploadImageAction(
       { asCover },
     );
     revalidatePath("/dashboard");
+    // A published listing's cover/photo set is part of its home card.
+    revalidatePublicListings();
     return { ok: true, id: image.id };
   } catch (error) {
     return toError(error);
@@ -89,6 +92,7 @@ export async function deleteImageAction(
     const actor = await resolveActor();
     await deleteCoachingImage(actor, id);
     revalidatePath("/dashboard");
+    revalidatePublicListings();
     return { ok: true, id };
   } catch (error) {
     return toError(error);
@@ -103,6 +107,7 @@ export async function setCoverAction(
     const actor = await resolveActor();
     const image = await setCoverImage(actor, id);
     revalidatePath("/dashboard");
+    revalidatePublicListings();
     return { ok: true, id: image.id };
   } catch (error) {
     return toError(error);

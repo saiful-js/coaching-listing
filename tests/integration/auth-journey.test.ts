@@ -21,6 +21,7 @@ let emailOutbox: OutgoingEmail[];
 
 const runId = Date.now().toString(36);
 const email = `journey-${runId}@example.com`;
+const resendEmail = `resend-${runId}@example.com`;
 const password = "s3cure-pass";
 const newPassword = "n3w-secure-pass";
 
@@ -57,10 +58,9 @@ describe("M2 auth journey", () => {
   });
 
   afterAll(async () => {
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (user) {
-      await prisma.user.delete({ where: { id: user.id } });
-    }
+    await prisma.user.deleteMany({
+      where: { email: { in: [email, resendEmail] } },
+    });
     await prisma.verification.deleteMany({
       where: { identifier: { contains: runId } },
     });
@@ -222,5 +222,50 @@ describe("M2 auth journey", () => {
       }),
     );
     expect(expired.status).not.toBe(200);
+  });
+
+  it("resends a verification link for an unverified account", async () => {
+    await prisma.rateLimit.deleteMany({});
+    const signup = await POST(
+      new Request(`${ORIGIN}/api/auth/sign-up/email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Resend Owner",
+          email: resendEmail,
+          password,
+          callbackURL: "/verify-email?verified=1",
+        }),
+      }),
+    );
+    expect(signup.status).toBe(200);
+    clearEmailOutbox();
+
+    const resend = await POST(
+      new Request(`${ORIGIN}/api/auth/send-verification-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: resendEmail,
+          callbackURL: "/verify-email?verified=1",
+        }),
+      }),
+    );
+    expect(resend.status).toBe(200);
+    expect(emailOutbox).toHaveLength(1);
+    expect(lastMailUrl()).toContain("/api/auth/verify-email");
+  });
+
+  it("does not reveal whether an address exists (anti-enumeration)", async () => {
+    clearEmailOutbox();
+    const unknown = await POST(
+      new Request(`${ORIGIN}/api/auth/send-verification-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: `nobody-${runId}@example.com` }),
+      }),
+    );
+    expect(unknown.status).toBe(200);
+    expect(emailOutbox).toHaveLength(0);
   });
 });

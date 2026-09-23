@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DashboardActions } from "@/features/listings/components/dashboard-actions";
+import { DeleteListingButton } from "@/features/listings/components/delete-listing-button";
 import { StatusBadge } from "@/features/listings/components/status-badge";
 import { CoverThumb } from "@/features/uploads/components/image-gallery";
 import { requireUser, UnauthorizedError } from "@/lib/auth-helpers";
@@ -26,6 +27,7 @@ export default async function DashboardPage() {
     orderBy: { updatedAt: "desc" },
     select: {
       id: true,
+      slug: true,
       name: true,
       status: true,
       rejectionReason: true,
@@ -99,6 +101,14 @@ export default async function DashboardPage() {
                 </p>
               )}
               <div className="mt-4 flex flex-wrap items-center gap-3">
+                {listing.status === "PUBLISHED" && (
+                  <Link
+                    href={`/coachings/${listing.slug}`}
+                    className="btn btn-secondary h-9 px-4 text-[13px]"
+                  >
+                    View live
+                  </Link>
+                )}
                 {listing.status !== "ARCHIVED" && (
                   <Link
                     href={`/dashboard/listings/${listing.id}/edit`}
@@ -108,6 +118,7 @@ export default async function DashboardPage() {
                   </Link>
                 )}
                 <DashboardActions id={listing.id} status={listing.status} />
+                <DeleteListingButton id={listing.id} />
               </div>
             </li>
           ))}

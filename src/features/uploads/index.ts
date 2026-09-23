@@ -14,6 +14,7 @@ export {
 export { cloudinaryUrl } from "./cloudinary-client";
 export {
   deleteCoachingImage,
+  destroyImageObjects,
   MAX_IMAGES_PER_LISTING,
   setCoverImage,
   uploadCoachingImage,

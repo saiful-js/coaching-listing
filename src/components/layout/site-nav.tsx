@@ -79,7 +79,7 @@ export function SiteNav() {
         Dashboard
       </Link>
       {isAdmin ? (
-        <Link href="/admin/listings?status=PENDING" className={linkClassName}>
+        <Link href="/admin" className={linkClassName}>
           Admin
         </Link>
       ) : (

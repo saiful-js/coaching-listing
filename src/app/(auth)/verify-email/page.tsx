@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ResendVerificationForm } from "@/features/auth";
 
 export const metadata = {
   title: "Verify your email",
@@ -34,6 +35,19 @@ export default async function VerifyEmailPage({
           We sent a verification link to your email address. Click it to verify
           — then you can log in and create your first listing.
         </p>
+      )}
+      {!verified && (
+        <section id="resend" className="mt-8 border-t border-line pt-6">
+          <h2 className="font-display text-lg font-medium">
+            Didn&apos;t get the email?
+          </h2>
+          <p className="mt-1 text-sm text-ink-soft">
+            Enter your address and we&apos;ll send a new verification link.
+          </p>
+          <div className="mt-4">
+            <ResendVerificationForm />
+          </div>
+        </section>
       )}
       <Link href="/login" className="btn btn-secondary mt-6">
         Go to login

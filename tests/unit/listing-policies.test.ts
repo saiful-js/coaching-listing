@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   canArchive,
+  canDelete,
   canEdit,
   canModerate,
   canSubmit,
@@ -74,5 +75,12 @@ describe("listing policies", () => {
   it("only admins moderate", () => {
     expect(canModerate("ADMIN")).toBe(true);
     expect(canModerate("OWNER")).toBe(false);
+  });
+
+  it("owners delete their own listings, admins delete any", () => {
+    expect(canDelete("OWNER", true)).toBe(true);
+    expect(canDelete("OWNER", false)).toBe(false);
+    expect(canDelete("ADMIN", false)).toBe(true);
+    expect(canDelete("ADMIN", true)).toBe(true);
   });
 });

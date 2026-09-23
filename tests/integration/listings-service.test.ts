@@ -299,4 +299,71 @@ describe("M3 listing service", () => {
       "REJECTED→PENDING",
     ]);
   });
+
+  it("permanently deletes a listing with its images, audit trail, and objects", async () => {
+    const uid = `m3-owner-delete-${runId}`;
+    await makeUser(uid, "OWNER");
+    const created = await service.createCoaching(
+      ownerActor(uid),
+      validInput(`Delete Me ${runId}`),
+    );
+    await addCover(created.id);
+    await prisma.coachingImage.create({
+      data: {
+        coachingId: created.id,
+        key: `test/${created.id}/gallery`,
+        width: 800,
+        height: 600,
+        sortOrder: 1,
+      },
+    });
+    await service.submitForReview(ownerActor(uid), created.id);
+    expect(
+      await prisma.listingAuditLog.count({ where: { coachingId: created.id } }),
+    ).toBe(1);
+
+    const destroyed: string[] = [];
+    await service.deleteCoaching(ownerActor(uid), created.id, async (keys) => {
+      destroyed.push(...keys);
+    });
+
+    expect(
+      await prisma.coaching.findUnique({ where: { id: created.id } }),
+    ).toBeNull();
+    expect(
+      await prisma.coachingImage.count({ where: { coachingId: created.id } }),
+    ).toBe(0);
+    expect(
+      await prisma.listingAuditLog.count({ where: { coachingId: created.id } }),
+    ).toBe(0);
+    expect(destroyed.sort()).toEqual(
+      [`test/${created.id}/cover`, `test/${created.id}/gallery`].sort(),
+    );
+  });
+
+  it("404s cross-owner deletes and lets an admin delete any listing", async () => {
+    const uidA = `m3-owner-dela-${runId}`;
+    const uidB = `m3-owner-delb-${runId}`;
+    const admin = `m3-admin-del-${runId}`;
+    await makeUser(uidA, "OWNER");
+    await makeUser(uidB, "OWNER");
+    await makeUser(admin, "ADMIN");
+    const created = await service.createCoaching(
+      ownerActor(uidA),
+      validInput(`Guarded Delete ${runId}`),
+    );
+    const { NotFoundError } = await import("@/lib/auth-helpers");
+    await expect(
+      service.deleteCoaching(ownerActor(uidB), created.id),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    // Still there after the rejected attempt.
+    expect(
+      await prisma.coaching.findUnique({ where: { id: created.id } }),
+    ).not.toBeNull();
+
+    await service.deleteCoaching(adminActor(admin), created.id);
+    expect(
+      await prisma.coaching.findUnique({ where: { id: created.id } }),
+    ).toBeNull();
+  });
 });

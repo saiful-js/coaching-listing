@@ -11,6 +11,7 @@ export {
 } from "./components/form-fields";
 export { LoginForm } from "./components/login-form";
 export { RegisterForm } from "./components/register-form";
+export { ResendVerificationForm } from "./components/resend-verification-form";
 export { ResetPasswordForm } from "./components/reset-password-form";
 export type {
   ForgotPasswordInput,

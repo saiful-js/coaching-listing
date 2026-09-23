@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { ModerationActions } from "@/features/admin/components/moderation-actions";
+import { AdminPageHeader } from "@/features/admin/components/admin-page-header";
 import { StatusBadge } from "@/features/listings/components/status-badge";
-import type { ListingStatus } from "@/generated/prisma/client";
+import type { ListingStatus, Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 
 export const metadata = {
-  title: "Review queue",
-  description: "Moderate coaching listings.",
+  title: "Listings",
+  description: "Search, filter, and moderate every listing.",
 };
 
 const TABS: { value: string; label: string }[] = [
@@ -26,15 +26,29 @@ const STATUSES: ListingStatus[] = [
   "ARCHIVED",
 ];
 
-const QUEUE_PAGE_SIZE = 25;
+const PAGE_SIZE = 25;
 
-function tabHref(value: string): string {
-  return value ? `/admin/listings?status=${value}` : "/admin/listings?status=";
+interface Filters {
+  status: ListingStatus | "ALL";
+  q?: string;
+  area?: string;
+  page: number;
 }
 
-function pageHref(status: ListingStatus | "ALL", page: number): string {
-  const base = status === "ALL" ? "/admin/listings?status=" : tabHref(status);
-  return `${base}&page=${page}`;
+function buildHref(filters: Partial<Filters>): string {
+  const search = new URLSearchParams();
+  const status = filters.status ?? "PENDING";
+  search.set("status", status === "ALL" ? "" : status);
+  if (filters.q) {
+    search.set("q", filters.q);
+  }
+  if (filters.area) {
+    search.set("area", filters.area);
+  }
+  if (filters.page && filters.page > 1) {
+    search.set("page", String(filters.page));
+  }
+  return `/admin/listings?${search.toString()}`;
 }
 
 export default async function AdminListingsPage({
@@ -43,32 +57,42 @@ export default async function AdminListingsPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
-  const rawStatus = Array.isArray(params.status)
-    ? params.status[0]
-    : params.status;
-  const rawPage = Array.isArray(params.page) ? params.page[0] : params.page;
-  // Missing/unknown → PENDING queue; explicit empty → all statuses.
+  const first = (value: string | string[] | undefined) =>
+    Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
+
+  const rawStatus = first(params.status);
   const status: ListingStatus | "ALL" =
     rawStatus === ""
       ? "ALL"
-      : (STATUSES as string[]).includes(rawStatus ?? "")
+      : (STATUSES as string[]).includes(rawStatus)
         ? (rawStatus as ListingStatus)
         : "PENDING";
-  const parsedPage = Number.parseInt(rawPage ?? "", 10);
+  const q = first(params.q).trim();
+  const area = first(params.area).trim();
+  const parsedPage = Number.parseInt(first(params.page), 10);
   const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
-  const where = status === "ALL" ? {} : { status };
-  const [counts, total, listings] = await Promise.all([
-    prisma.coaching.groupBy({
-      by: ["status"],
-      _count: { _all: true },
-    }),
+  const where: Prisma.CoachingWhereInput = {
+    ...(status === "ALL" ? {} : { status }),
+    ...(q
+      ? {
+          OR: [
+            { name: { contains: q, mode: "insensitive" } },
+            { owner: { email: { contains: q, mode: "insensitive" } } },
+          ],
+        }
+      : {}),
+    ...(area ? { area: { slug: area } } : {}),
+  };
+
+  const [counts, total, listings, areas] = await Promise.all([
+    prisma.coaching.groupBy({ by: ["status"], _count: { _all: true } }),
     prisma.coaching.count({ where }),
     prisma.coaching.findMany({
       where,
       orderBy: { updatedAt: "desc" },
-      skip: (page - 1) * QUEUE_PAGE_SIZE,
-      take: QUEUE_PAGE_SIZE,
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
       select: {
         id: true,
         name: true,
@@ -78,111 +102,201 @@ export default async function AdminListingsPage({
         area: { select: { nameEn: true } },
       },
     }),
+    prisma.area.findMany({
+      orderBy: { sortOrder: "asc" },
+      select: { slug: true, nameEn: true },
+    }),
   ]);
+
   const countBy = new Map(counts.map((c) => [c.status, c._count._all]));
-  const pages = Math.max(1, Math.ceil(total / QUEUE_PAGE_SIZE));
+  const totalAll = counts.reduce((n, c) => n + c._count._all, 0);
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  // Clamp the high end so a stale ?page= link shows page 1's neighbours.
+  const shownPage = Math.min(page, pages);
+  const hasFilters = Boolean(q || area);
 
   return (
-    <div>
-      <h1 className="font-display text-2xl font-medium tracking-tight">
-        Review queue
-      </h1>
+    <div className="grid gap-6">
+      <AdminPageHeader
+        title="Listings"
+        description="Search by listing name or owner email, filter by area, then open one to moderate."
+      />
+
       <div
-        className="mt-4 flex flex-wrap gap-2"
+        className="flex flex-wrap gap-2"
         role="tablist"
         aria-label="Filter by status"
       >
-        {TABS.map((tab) => (
-          <Link
-            key={tab.value || "all"}
-            href={tabHref(tab.value)}
-            role="tab"
-            aria-selected={
-              tab.value === status || (tab.value === "" && status === "ALL")
-            }
-            className={`inline-flex h-9 items-center rounded-sm border px-4 font-mono text-xs ${
-              tab.value === status || (tab.value === "" && status === "ALL")
-                ? "border-forest bg-forest text-paper"
-                : "border-line-strong bg-paper-raised text-ink-soft hover:border-ink-soft"
-            }`}
-          >
-            {tab.label} (
-            {tab.value
-              ? (countBy.get(tab.value as ListingStatus) ?? 0)
-              : counts.reduce((n, c) => n + c._count._all, 0)}
-            )
-          </Link>
-        ))}
+        {TABS.map((tab) => {
+          const value = tab.value as ListingStatus | "ALL" | "";
+          const isActive = value === "" ? status === "ALL" : value === status;
+          return (
+            <Link
+              key={tab.value || "all"}
+              href={buildHref({
+                status: tab.value === "" ? "ALL" : (tab.value as ListingStatus),
+                q,
+                area,
+              })}
+              role="tab"
+              aria-selected={isActive}
+              className={`inline-flex h-9 items-center rounded-sm border px-4 font-mono text-xs ${
+                isActive
+                  ? "border-forest bg-forest text-paper"
+                  : "border-line-strong bg-paper-raised text-ink-soft hover:border-ink-soft"
+              }`}
+            >
+              {tab.label} (
+              {tab.value
+                ? (countBy.get(tab.value as ListingStatus) ?? 0)
+                : totalAll}
+              )
+            </Link>
+          );
+        })}
       </div>
 
+      <form
+        method="get"
+        action="/admin/listings"
+        className="grid gap-3 rounded-sm border border-line bg-paper-raised p-4 sm:grid-cols-[1fr_200px_auto_auto] sm:items-end"
+      >
+        <input
+          type="hidden"
+          name="status"
+          value={status === "ALL" ? "" : status}
+        />
+        <div className="grid gap-1.5">
+          <label htmlFor="admin-q" className="text-sm font-medium text-ink">
+            Search
+          </label>
+          <input
+            id="admin-q"
+            name="q"
+            type="search"
+            defaultValue={q}
+            placeholder="Listing name or owner email…"
+            className="h-11 w-full rounded-sm border border-line-strong bg-paper px-3 text-sm text-ink placeholder:text-ink-faint"
+          />
+        </div>
+        <div className="grid gap-1.5">
+          <label htmlFor="admin-area" className="text-sm font-medium text-ink">
+            Area
+          </label>
+          <select
+            id="admin-area"
+            name="area"
+            defaultValue={area}
+            className="h-11 w-full rounded-sm border border-line-strong bg-paper px-3 text-sm text-ink"
+          >
+            <option value="">All areas</option>
+            {areas.map((a) => (
+              <option key={a.slug} value={a.slug}>
+                {a.nameEn}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button type="submit" className="btn btn-primary h-11">
+          Filter
+        </button>
+        {hasFilters && (
+          <Link
+            href={buildHref({ status })}
+            className="btn btn-secondary h-11 px-4 text-sm"
+          >
+            Clear
+          </Link>
+        )}
+      </form>
+
+      <p className="font-mono text-xs text-ink-faint" aria-live="polite">
+        {total} {total === 1 ? "listing" : "listings"} · page {shownPage} of{" "}
+        {pages}
+      </p>
+
       {listings.length === 0 ? (
-        <p className="mt-8 rounded-sm border border-line bg-paper-raised p-8 text-center text-sm text-ink-soft">
-          Nothing with this status. The queue is clear.
+        <p className="rounded-sm border border-line bg-paper-raised p-8 text-center text-sm text-ink-soft">
+          {hasFilters
+            ? "Nothing matches those filters."
+            : "Nothing with this status. The queue is clear."}
         </p>
       ) : (
-        <>
-          <p
-            className="mt-4 font-mono text-xs text-ink-faint"
-            aria-live="polite"
-          >
-            Showing {(page - 1) * QUEUE_PAGE_SIZE + 1}–
-            {(page - 1) * QUEUE_PAGE_SIZE + listings.length} of {total}
-          </p>
-          <ul className="mt-4 grid gap-4">
-            {listings.map((listing) => (
-              <li
-                key={listing.id}
-                className="grid gap-3 rounded-sm border border-line bg-paper-raised p-5"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="grid gap-1">
+        <div className="overflow-x-auto rounded-sm border border-line">
+          <table className="w-full min-w-[760px] border-collapse text-sm">
+            <thead className="bg-forest-mist text-left font-mono text-xs tracking-wide text-ink-faint uppercase">
+              <tr>
+                <th className="px-4 py-3 font-medium">Listing</th>
+                <th className="px-4 py-3 font-medium">Owner</th>
+                <th className="px-4 py-3 font-medium">Area</th>
+                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Updated</th>
+                <th className="px-4 py-3 text-right font-medium">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {listings.map((listing) => (
+                <tr key={listing.id} className="border-t border-line">
+                  <td className="px-4 py-3">
                     <Link
                       href={`/admin/listings/${listing.id}`}
-                      className="font-display text-lg font-medium hover:underline hover:underline-offset-4"
+                      className="font-content font-medium underline-offset-4 hover:underline"
                     >
-                      <span className="font-content">{listing.name}</span>
+                      {listing.name}
                     </Link>
-                    <p className="font-mono text-xs text-ink-faint">
-                      {listing.owner.email} · {listing.area.nameEn} · updated{" "}
-                      {listing.updatedAt.toISOString().slice(0, 10)}
-                    </p>
-                  </div>
-                  <StatusBadge status={listing.status} />
-                </div>
-                {(listing.status === "PENDING" ||
-                  listing.status === "PUBLISHED") && (
-                  <ModerationActions id={listing.id} status={listing.status} />
-                )}
-              </li>
-            ))}
-          </ul>
-          {pages > 1 && (
-            <nav
-              aria-label="Queue pagination"
-              className="mt-8 flex items-center justify-center gap-2"
+                  </td>
+                  <td className="px-4 py-3 text-ink-soft">
+                    {listing.owner.email}
+                  </td>
+                  <td className="px-4 py-3 text-ink-soft">
+                    {listing.area.nameEn}
+                  </td>
+                  <td className="px-4 py-3">
+                    <StatusBadge status={listing.status} />
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-ink-faint">
+                    {listing.updatedAt.toISOString().slice(0, 10)}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Link
+                      href={`/admin/listings/${listing.id}`}
+                      className="btn btn-secondary h-8 px-3 text-xs"
+                    >
+                      Review
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {pages > 1 && (
+        <nav
+          aria-label="Listings pagination"
+          className="flex items-center justify-center gap-2"
+        >
+          {shownPage > 1 && (
+            <Link
+              href={buildHref({ status, q, area, page: shownPage - 1 })}
+              className="btn btn-secondary h-10 px-4 text-sm"
             >
-              {page > 1 && (
-                <Link
-                  href={pageHref(status, page - 1)}
-                  className="btn btn-secondary h-10 px-4 text-sm"
-                >
-                  ← Previous
-                </Link>
-              )}
-              <span className="font-mono text-xs text-ink-faint">
-                {page} / {pages}
-              </span>
-              {page < pages && (
-                <Link
-                  href={pageHref(status, page + 1)}
-                  className="btn btn-secondary h-10 px-4 text-sm"
-                >
-                  Next →
-                </Link>
-              )}
-            </nav>
+              ← Previous
+            </Link>
           )}
-        </>
+          <span className="font-mono text-xs text-ink-faint">
+            {shownPage} / {pages}
+          </span>
+          {shownPage < pages && (
+            <Link
+              href={buildHref({ status, q, area, page: shownPage + 1 })}
+              className="btn btn-secondary h-10 px-4 text-sm"
+            >
+              Next →
+            </Link>
+          )}
+        </nav>
       )}
     </div>
   );

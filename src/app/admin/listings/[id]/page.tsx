@@ -1,8 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AdminPageHeader } from "@/features/admin/components/admin-page-header";
 import { ModerationActions } from "@/features/admin/components/moderation-actions";
 import { safeFacebookUrl } from "@/features/listings";
+import { DeleteListingButton } from "@/features/listings/components/delete-listing-button";
 import { StatusBadge } from "@/features/listings/components/status-badge";
 import { cloudinaryUrl } from "@/features/uploads";
 import { prisma } from "@/lib/db";
@@ -80,19 +82,15 @@ export default async function AdminReviewPage({
 
   return (
     <div>
-      <Link
-        href="/admin/listings?status=PENDING"
-        className="font-mono text-xs text-ink-soft underline underline-offset-4 hover:text-ink"
-      >
-        ← Back to queue
-      </Link>
-
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-medium tracking-tight">
-          <span className="font-content">{listing.name}</span>
-        </h1>
-        <StatusBadge status={listing.status} />
-      </div>
+      <AdminPageHeader
+        breadcrumbs={[
+          { label: "Listings", href: "/admin/listings" },
+          { label: listing.name },
+        ]}
+        title={listing.name}
+        titleClassName="font-content"
+        actions={<StatusBadge status={listing.status} />}
+      />
       <p className="mt-2 font-mono text-xs text-ink-faint">
         Owner: {listing.owner.email}
         {listing.owner.emailVerified ? " (verified)" : " (UNVERIFIED)"} ·
@@ -115,6 +113,14 @@ export default async function AdminReviewPage({
           Rejection reason: {listing.rejectionReason}
         </p>
       )}
+
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <DeleteListingButton
+          id={listing.id}
+          redirectTo={`/admin/listings?status=${listing.status}`}
+          label="Delete listing"
+        />
+      </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_320px]">
         <div className="grid content-start gap-6">

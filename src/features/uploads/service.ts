@@ -159,6 +159,26 @@ export async function deleteCoachingImage(
   }
 }
 
+/**
+ * Best-effort destroy of many objects at once, used when a whole listing is
+ * permanently deleted. Failures are logged, never thrown — the DB row is the
+ * source of truth for what we show (same stance as `deleteCoachingImage`).
+ * Kept here (not in listings) so the listings service never reaches the
+ * Cloudinary secret directly.
+ */
+export async function destroyImageObjects(
+  keys: string[],
+  client: CloudinaryUploader = getCloudinaryClient(),
+): Promise<void> {
+  for (const key of keys) {
+    try {
+      await client.destroy(key);
+    } catch (error) {
+      console.error("Cloudinary destroy failed", { key, error });
+    }
+  }
+}
+
 export async function setCoverImage(
   actor: Actor,
   imageId: string,

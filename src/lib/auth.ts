@@ -1,5 +1,6 @@
 import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { captcha } from "better-auth/plugins";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
@@ -45,6 +46,7 @@ export const auth = betterAuth({
       "/sign-in/email": { window: 600, max: 5 },
       "/sign-up/email": { window: 600, max: 10 },
       "/request-password-reset": { window: 600, max: 5 },
+      "/send-verification-email": { window: 600, max: 5 },
     },
   },
   // Turnstile only when provisioned; without a secret the plugin stays out
@@ -69,6 +71,37 @@ export const auth = betterAuth({
         ]
       : []),
   ],
+  // Account suspension (admin support panel). A banned user cannot start a
+  // session; banning also revokes existing sessions (see admin service), so
+  // this is the single enforcement point. App-owned columns on the user
+  // table — the Better Auth CLI does not generate them.
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => {
+          const user = await prisma.user.findUnique({
+            where: { id: session.userId },
+            select: { banned: true, banExpires: true },
+          });
+          if (!user?.banned) {
+            return;
+          }
+          // A lapsed temporary ban lifts itself on the next sign-in.
+          if (user.banExpires && user.banExpires.getTime() < Date.now()) {
+            await prisma.user.update({
+              where: { id: session.userId },
+              data: { banned: false, banReason: null, banExpires: null },
+            });
+            return;
+          }
+          throw new APIError("FORBIDDEN", {
+            message: "This account is suspended. Contact support.",
+            code: "BANNED_USER",
+          });
+        },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,

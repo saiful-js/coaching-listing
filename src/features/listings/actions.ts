@@ -5,10 +5,13 @@ import { ZodError } from "zod";
 import {
   archiveListing,
   createCoaching,
+  deleteCoaching,
   resolveActor,
   submitForReview,
   updateCoaching,
 } from "@/features/listings/service";
+import { destroyImageObjects } from "@/features/uploads";
+import { revalidatePublicListings } from "@/lib/revalidate";
 
 export interface ActionResult {
   ok: boolean;
@@ -56,6 +59,8 @@ export async function updateListingAction(
     const actor = await resolveActor();
     const coaching = await updateCoaching(actor, id, input);
     revalidatePath("/dashboard");
+    // An edit to a published listing changes its public card.
+    revalidatePublicListings();
     return toResult(coaching.id, coaching.slug);
   } catch (error) {
     return toError(error);
@@ -78,7 +83,22 @@ export async function archiveListingAction(id: string): Promise<ActionResult> {
     const actor = await resolveActor();
     const coaching = await archiveListing(actor, id);
     revalidatePath("/dashboard");
+    // Archiving a published listing must drop it from the home page.
+    revalidatePublicListings();
     return toResult(coaching.id, coaching.slug);
+  } catch (error) {
+    return toError(error);
+  }
+}
+
+export async function deleteListingAction(id: string): Promise<ActionResult> {
+  try {
+    const actor = await resolveActor();
+    await deleteCoaching(actor, id, destroyImageObjects);
+    revalidatePath("/dashboard");
+    revalidatePath("/admin/listings");
+    revalidatePublicListings();
+    return { ok: true };
   } catch (error) {
     return toError(error);
   }

@@ -81,4 +81,8 @@ html {
   .btn-secondary {
     @apply border border-line-strong bg-paper-raised text-ink hover:border-ink-soft;
   }
+  /* Destructive actions (permanent delete): warm clay, never a stark red. */
+  .btn-danger {
+    @apply border border-clay bg-paper-raised text-clay hover:bg-clay-tint;
+  }
 }

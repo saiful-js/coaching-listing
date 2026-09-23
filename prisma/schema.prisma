@@ -127,6 +127,11 @@ model User {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   role          UserRole   @default(OWNER) // app-owned (PRD §7); adjusted from CLI's String
+  // App-owned account suspension (admin support panel). Enforced at session
+  // creation in src/lib/auth.ts; not part of the Better Auth CLI output.
+  banned        Boolean    @default(false)
+  banReason     String?
+  banExpires    DateTime?
   sessions      Session[]
   accounts      Account[]
   coachings     Coaching[]
