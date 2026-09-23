@@ -9,10 +9,27 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     env:
-      # Env is validated at boot (src/lib/env.ts) — the build only needs
-      # well-shaped values; no database is actually contacted yet (M1+).
-      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      # Validated at boot (src/lib/env.ts). The tests stub this exact URL
+      # (tests/** hardcode localhost:5434), and the service below maps host
+      # port 5434 → container 5432, so local tests, CI tests, and the build
+      # all point at the same database.
+      DATABASE_URL: postgresql://coaching:coaching@localhost:5434/coaching_ngj
       APP_URL: http://localhost:3000
+    services:
+      postgres:
+        # Same image/credentials as docker-compose.yml (PRD §12).
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: coaching
+          POSTGRES_PASSWORD: coaching
+          POSTGRES_DB: coaching_ngj
+        ports:
+          - 5434:5432 # host port the tests stub
+        options: >-
+          --health-cmd "pg_isready -U coaching -d coaching_ngj"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,7 +38,30 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx prisma generate # explicit; also covered by the postinstall hook
+      - name: Set up database (schema + seed)
+        run: |
+          npx prisma migrate deploy
+          node prisma/seed.mjs
+        env:
+          # Seed (prisma/seed.mjs) refuses to run without an admin (A8) —
+          # CI-only throwaway credentials, never a real account.
+          ADMIN_EMAIL: admin@coaching-ngj.test
+          ADMIN_PASSWORD: ci-only-admin-password
       - run: npm run lint # biome check (ADR 0001)
       - run: npm run typecheck
       - run: npm run test
-      - run: npm run build
+      - name: Build
+        run: npm run build
+        env:
+          # `next build` runs with NODE_ENV=production, where src/lib/env.ts
+          # refuses stub/loopback values (M2+ gate), and the home page
+          # prerenders against the database above. Shape-only dummies: no
+          # external service is contacted during the build.
+          APP_URL: https://coaching-ngj.example.com
+          BETTER_AUTH_SECRET: ci-build-secret-0123456789abcdef0123456789abcdef
+          SMTP_USER: ci@example.com
+          SMTP_PASS: ci-dummy-smtp-pass
+          TURNSTILE_SECRET_KEY: ci-dummy-turnstile-secret
+          CLOUDINARY_CLOUD_NAME: ci-cloud
+          CLOUDINARY_API_KEY: ci-dummy-api-key
+          CLOUDINARY_API_SECRET: ci-dummy-api-secret
